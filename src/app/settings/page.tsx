@@ -33,7 +33,16 @@ export default function SettingsPage() {
   const router = useRouter();
   const { userProfile, updateUserProfile, fetchUserProfile } = useInterviewStore();
   const [isSubmitting, setIsSubmitting] = React.useState(false);
-  const [formData, setFormData] = React.useState<UserProfile | null>(null);
+  const [formData, setFormData] = React.useState<UserProfile>({
+    id: "", // This will be set when saving
+    name: "",
+    email: "",
+    skills: [],
+    experience: [],
+    education: [],
+    projects: [],
+    certifications: [],
+  });
   const [isLoading, setIsLoading] = React.useState(true);
   const isInitialMount = React.useRef(true);
 
@@ -46,7 +55,7 @@ export default function SettingsPage() {
         }
       } catch (error) {
         console.error("Error loading profile:", error);
-        toast.error("Failed to load profile data");
+        // Don't show error toast, just continue with empty form
       } finally {
         setIsLoading(false);
       }
@@ -205,17 +214,22 @@ export default function SettingsPage() {
     setIsSubmitting(true);
 
     try {
+      // Generate a unique ID if not present
+      const profileData = {
+        ...formData,
+        id: formData.id || Date.now().toString(),
+      };
+
       // First update the store
-      await updateUserProfile(formData);
+      await updateUserProfile(profileData);
       
-      // Then save to MongoDB, excluding _id
-      const { _id, ...updateData } = formData;
+      // Then save to MongoDB
       const response = await fetch("/api/users", {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(updateData),
+        body: JSON.stringify(profileData),
       });
 
       if (!response.ok) {
@@ -240,16 +254,6 @@ export default function SettingsPage() {
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
           <p>Loading your profile...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (!formData) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <p>No profile data found. Please try refreshing the page.</p>
         </div>
       </div>
     );
