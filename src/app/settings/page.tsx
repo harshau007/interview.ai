@@ -111,13 +111,13 @@ export default function SettingsPage() {
         ...formData.experience,
         {
           id: Date.now().toString(),
-          title: "",
-          company: "",
-          location: "",
-          startDate: "",
-          endDate: "",
-          current: false,
-          description: "",
+      title: "",
+      company: "",
+      location: "",
+      startDate: "",
+      endDate: "",
+      current: false,
+      description: "",
         },
       ],
     });
@@ -131,13 +131,13 @@ export default function SettingsPage() {
         ...formData.education,
         {
           id: Date.now().toString(),
-          degree: "",
-          institution: "",
-          location: "",
-          startDate: "",
-          endDate: "",
-          current: false,
-          description: "",
+      degree: "",
+      institution: "",
+      location: "",
+      startDate: "",
+      endDate: "",
+      current: false,
+      description: "",
         },
       ],
     });
@@ -151,10 +151,10 @@ export default function SettingsPage() {
         ...formData.projects,
         {
           id: Date.now().toString(),
-          title: "",
-          description: "",
-          technologies: [],
-          url: "",
+      title: "",
+      description: "",
+      technologies: [],
+      url: "",
         },
       ],
     });
@@ -249,13 +249,13 @@ export default function SettingsPage() {
   };
 
   if (isLoading) {
-    return (
+  return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
           <p>Loading your profile...</p>
-        </div>
-      </div>
+            </div>
+          </div>
     );
   }
 
@@ -264,41 +264,41 @@ export default function SettingsPage() {
       <div className="container mx-auto p-4">
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-2xl font-bold">Settings</h1>
-        </div>
+              </div>
 
         <div className="space-y-8">
-          <Card>
-            <CardHeader>
+              <Card>
+                <CardHeader>
               <CardTitle>Profile Settings</CardTitle>
               <CardDescription>Update your profile information</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
+                </CardHeader>
+                <CardContent className="space-y-4">
+                    <div className="space-y-2">
                 <Label htmlFor="name">Name</Label>
-                <Input
-                  id="name"
+                      <Input
+                        id="name"
                   value={formData.name}
                   onChange={(e) => handleInputChange("name", e.target.value)}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <Input
-                  id="email"
-                  type="email"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="email">Email</Label>
+                      <Input
+                        id="email"
+                        type="email"
                   value={formData.email}
                   onChange={(e) => handleInputChange("email", e.target.value)}
-                />
-              </div>
-            </CardContent>
-          </Card>
+                    />
+                  </div>
+                </CardContent>
+              </Card>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Skills</CardTitle>
+              <Card>
+                <CardHeader>
+                  <CardTitle>Skills</CardTitle>
               <CardDescription>Add your technical skills</CardDescription>
-            </CardHeader>
-            <CardContent>
+                </CardHeader>
+                <CardContent>
               <div className="flex flex-wrap gap-2">
                 {formData.skills.map((skill, index) => (
                   <div key={index} className="flex items-center gap-2">
@@ -328,61 +328,61 @@ export default function SettingsPage() {
                   <Plus className="h-4 w-4 mr-2" />
                   Add Skill
                 </Button>
-              </div>
-            </CardContent>
-          </Card>
+                  </div>
+                </CardContent>
+              </Card>
 
-          <Card>
+              <Card>
             <CardHeader>
               <CardTitle>Experience</CardTitle>
               <CardDescription>Add your work experience</CardDescription>
-            </CardHeader>
+                </CardHeader>
             <CardContent className="space-y-4">
               {formData.experience.map((exp, index) => (
                 <div key={exp.id} className="space-y-4 p-4 border rounded-lg">
-                  <div className="flex justify-between items-start">
+                      <div className="flex justify-between items-start">
                     <h3 className="font-medium">Experience {index + 1}</h3>
-                    <Button
-                      variant="ghost"
+                          <Button
+                            variant="ghost"
                       size="sm"
                       onClick={() => removeExperience(index)}
-                    >
+                          >
                       <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
+                          </Button>
+                        </div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
                       <Label>Title</Label>
-                      <Input
+                          <Input
                         value={exp.title}
                         onChange={(e) => handleExperienceChange(index, "title", e.target.value)}
-                      />
-                    </div>
-                    <div className="space-y-2">
+                          />
+                        </div>
+                        <div className="space-y-2">
                       <Label>Company</Label>
-                      <Input
+                          <Input
                         value={exp.company}
                         onChange={(e) => handleExperienceChange(index, "company", e.target.value)}
-                      />
-                    </div>
-                    <div className="space-y-2">
+                          />
+                        </div>
+                      <div className="space-y-2">
                       <Label>Location</Label>
-                      <Input
+                        <Input
                         value={exp.location}
                         onChange={(e) => handleExperienceChange(index, "location", e.target.value)}
-                      />
-                    </div>
-                    <div className="space-y-2">
+                        />
+                      </div>
+                        <div className="space-y-2">
                       <Label>Start Date</Label>
-                      <Input
+                          <Input
                         type="date"
                         value={exp.startDate}
                         onChange={(e) => handleExperienceChange(index, "startDate", e.target.value)}
-                      />
-                    </div>
-                    <div className="space-y-2">
+                          />
+                        </div>
+                        <div className="space-y-2">
                       <Label>End Date</Label>
-                      <Input
+                            <Input
                         type="date"
                         value={exp.endDate}
                         onChange={(e) => handleExperienceChange(index, "endDate", e.target.value)}
@@ -392,82 +392,82 @@ export default function SettingsPage() {
                     <div className="space-y-2">
                       <Label>Current Position</Label>
                       <div className="flex items-center space-x-2">
-                        <input
-                          type="checkbox"
+                              <input
+                                type="checkbox"
                           checked={exp.current}
                           onChange={(e) => handleExperienceChange(index, "current", e.target.checked)}
                         />
                         <span>I currently work here</span>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="space-y-2">
+                            </div>
+                          </div>
+                        </div>
+                      <div className="space-y-2">
                     <Label>Description</Label>
-                    <Textarea
+                        <Textarea
                       value={exp.description}
                       onChange={(e) => handleExperienceChange(index, "description", e.target.value)}
-                    />
-                  </div>
-                </div>
+                        />
+                      </div>
+                    </div>
               ))}
               <Button onClick={addExperience}>
                 <Plus className="h-4 w-4 mr-2" />
                 Add Experience
-              </Button>
+                      </Button>
             </CardContent>
           </Card>
 
-          <Card>
+              <Card>
             <CardHeader>
-              <CardTitle>Education</CardTitle>
+                    <CardTitle>Education</CardTitle>
               <CardDescription>Add your educational background</CardDescription>
-            </CardHeader>
+                </CardHeader>
             <CardContent className="space-y-4">
               {formData.education.map((edu, index) => (
                 <div key={edu.id} className="space-y-4 p-4 border rounded-lg">
-                  <div className="flex justify-between items-start">
+                      <div className="flex justify-between items-start">
                     <h3 className="font-medium">Education {index + 1}</h3>
-                    <Button
-                      variant="ghost"
+                          <Button
+                            variant="ghost"
                       size="sm"
                       onClick={() => removeEducation(index)}
-                    >
+                          >
                       <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
+                          </Button>
+                        </div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
                       <Label>Degree</Label>
-                      <Input
+                          <Input
                         value={edu.degree}
                         onChange={(e) => handleEducationChange(index, "degree", e.target.value)}
-                      />
-                    </div>
-                    <div className="space-y-2">
+                          />
+                        </div>
+                        <div className="space-y-2">
                       <Label>Institution</Label>
-                      <Input
+                          <Input
                         value={edu.institution}
                         onChange={(e) => handleEducationChange(index, "institution", e.target.value)}
-                      />
-                    </div>
-                    <div className="space-y-2">
+                          />
+                        </div>
+                      <div className="space-y-2">
                       <Label>Location</Label>
-                      <Input
+                        <Input
                         value={edu.location}
                         onChange={(e) => handleEducationChange(index, "location", e.target.value)}
-                      />
-                    </div>
-                    <div className="space-y-2">
+                        />
+                      </div>
+                        <div className="space-y-2">
                       <Label>Start Date</Label>
-                      <Input
+                          <Input
                         type="date"
                         value={edu.startDate}
                         onChange={(e) => handleEducationChange(index, "startDate", e.target.value)}
-                      />
-                    </div>
-                    <div className="space-y-2">
+                          />
+                        </div>
+                        <div className="space-y-2">
                       <Label>End Date</Label>
-                      <Input
+                            <Input
                         type="date"
                         value={edu.endDate}
                         onChange={(e) => handleEducationChange(index, "endDate", e.target.value)}
@@ -477,40 +477,40 @@ export default function SettingsPage() {
                     <div className="space-y-2">
                       <Label>Currently Studying</Label>
                       <div className="flex items-center space-x-2">
-                        <input
-                          type="checkbox"
+                              <input
+                                type="checkbox"
                           checked={edu.current}
                           onChange={(e) => handleEducationChange(index, "current", e.target.checked)}
                         />
                         <span>I am currently studying here</span>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="space-y-2">
+                            </div>
+                          </div>
+                        </div>
+                      <div className="space-y-2">
                     <Label>Description</Label>
-                    <Textarea
+                        <Textarea
                       value={edu.description}
                       onChange={(e) => handleEducationChange(index, "description", e.target.value)}
-                    />
-                  </div>
-                </div>
+                        />
+                      </div>
+                    </div>
               ))}
               <Button onClick={addEducation}>
                 <Plus className="h-4 w-4 mr-2" />
                 Add Education
-              </Button>
+                      </Button>
             </CardContent>
           </Card>
 
-          <Card>
+              <Card>
             <CardHeader>
-              <CardTitle>Projects</CardTitle>
+                    <CardTitle>Projects</CardTitle>
               <CardDescription>Add your personal projects</CardDescription>
-            </CardHeader>
+                </CardHeader>
             <CardContent className="space-y-4">
               {formData.projects.map((project, index) => (
                 <div key={project.id} className="space-y-4 p-4 border rounded-lg">
-                  <div className="flex justify-between items-start">
+                      <div className="flex justify-between items-start">
                     <h3 className="font-medium">Project {index + 1}</h3>
                     <Button
                       variant="ghost"
@@ -519,7 +519,7 @@ export default function SettingsPage() {
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>
-                  </div>
+                          </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label>Title</Label>
@@ -527,7 +527,7 @@ export default function SettingsPage() {
                         value={project.title}
                         onChange={(e) => handleProjectChange(index, "title", e.target.value)}
                       />
-                    </div>
+                        </div>
                     <div className="space-y-2">
                       <Label>URL</Label>
                       <Input
@@ -574,16 +574,16 @@ export default function SettingsPage() {
                         <Plus className="h-4 w-4 mr-2" />
                         Add Technology
                       </Button>
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                </div>
-              ))}
+                  ))}
               <Button onClick={addProject}>
                 <Plus className="h-4 w-4 mr-2" />
                 Add Project
               </Button>
-            </CardContent>
-          </Card>
+                </CardContent>
+              </Card>
 
           <Card>
             <CardHeader>
@@ -604,36 +604,36 @@ export default function SettingsPage() {
                     </Button>
                   </div>
                   <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
+                      <div className="space-y-2">
                       <Label>Name</Label>
-                      <Input
+                        <Input
                         value={cert.name}
                         onChange={(e) => handleCertificationChange(index, "name", e.target.value)}
-                      />
-                    </div>
-                    <div className="space-y-2">
+                        />
+                      </div>
+                      <div className="space-y-2">
                       <Label>Issuer</Label>
-                      <Input
+                        <Input
                         value={cert.issuer}
                         onChange={(e) => handleCertificationChange(index, "issuer", e.target.value)}
-                      />
-                    </div>
-                    <div className="space-y-2">
+                        />
+                      </div>
+                      <div className="space-y-2">
                       <Label>Date</Label>
                       <Input
                         type="date"
                         value={cert.date}
                         onChange={(e) => handleCertificationChange(index, "date", e.target.value)}
-                      />
-                    </div>
-                    <div className="space-y-2">
+                        />
+                      </div>
+                      <div className="space-y-2">
                       <Label>URL</Label>
-                      <Input
+                        <Input
                         value={cert.url}
                         onChange={(e) => handleCertificationChange(index, "url", e.target.value)}
-                      />
+                        />
+                      </div>
                     </div>
-                  </div>
                 </div>
               ))}
               <Button onClick={addCertification}>
@@ -646,8 +646,8 @@ export default function SettingsPage() {
           <div className="flex justify-end">
             <Button onClick={handleSave} disabled={isSubmitting}>
               {isSubmitting ? "Saving..." : "Save All Changes"}
-            </Button>
-          </div>
+                      </Button>
+        </div>
         </div>
       </div>
     </div>

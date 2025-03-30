@@ -1,14 +1,13 @@
 import { NextResponse } from "next/server";
-import getMongoClient from "@/lib/mongodb";
+import clientPromise from "@/lib/mongodb";
 import { ObjectId } from "mongodb";
 
 export async function GET(
   request: Request,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: { id: string } }
 ) {
   try {
-    const client = await getMongoClient();
-    const resolvedParams = await params;
+    const client = await clientPromise();
     if (!client) {
       return NextResponse.json(
         { error: "Database connection failed" },
@@ -16,10 +15,10 @@ export async function GET(
       );
     }
 
-    const db = client.db("interview-ai");
+    const db = client.db("interview-prep");
     const session = await db
       .collection("sessions")
-      .findOne({ _id: new ObjectId(resolvedParams.id) });
+      .findOne({ id: params.id });
 
     if (!session) {
       return NextResponse.json(
@@ -40,11 +39,10 @@ export async function GET(
 
 export async function PUT(
   request: Request,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: { id: string } }
 ) {
   try {
-    const client = await getMongoClient();
-    const resolvedParams = await params;
+    const client = await clientPromise();
     if (!client) {
       return NextResponse.json(
         { error: "Database connection failed" },
@@ -53,11 +51,11 @@ export async function PUT(
     }
 
     const body = await request.json();
-    const db = client.db("interview-ai");
+    const db = client.db("interview-prep");
     const result = await db
       .collection("sessions")
       .updateOne(
-        { _id: new ObjectId(resolvedParams.id) },
+        { id: params.id },
         { $set: body }
       );
 
@@ -80,11 +78,10 @@ export async function PUT(
 
 export async function DELETE(
   request: Request,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: { id: string } }
 ) {
   try {
-    const client = await getMongoClient();
-    const resolvedParams = await params;
+    const client = await clientPromise();
     if (!client) {
       return NextResponse.json(
         { error: "Database connection failed" },
@@ -92,10 +89,10 @@ export async function DELETE(
       );
     }
 
-    const db = client.db("interview-ai");
+    const db = client.db("interview-prep");
     const result = await db
       .collection("sessions")
-      .deleteOne({ _id: new ObjectId(resolvedParams.id) });
+      .deleteOne({ id: params.id });
 
     if (result.deletedCount === 0) {
       return NextResponse.json(

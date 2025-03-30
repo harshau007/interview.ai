@@ -7,15 +7,15 @@ export async function POST(request: Request) {
     const { text } = await request.json();
     const config = await loadConfig();
 
-    if (!config?.elevenLabsApiKey) {
-      return NextResponse.json(
-        { error: "ElevenLabs API key not configured" },
-        { status: 400 }
-      );
-    }
+    // if (!config?.elevenLabsApiKey) {
+    //   return NextResponse.json(
+    //     { error: "ElevenLabs API key not configured" },
+    //     { status: 400 }
+    //   );
+    // }
 
     const elevenlabs = new ElevenLabsClient({
-      apiKey: config.elevenLabsApiKey,
+      apiKey: config?.elevenLabsApiKey || process.env.ELEVENLABS_API_KEY,
     });
 
     const audio = await elevenlabs.generate({

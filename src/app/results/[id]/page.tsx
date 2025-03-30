@@ -117,7 +117,7 @@ export default function ResultsPage({ params }: { params: Promise<{ id: string }
           </Card>
 
           {/* Questions and Answers */}
-          <Card className="md:col-span-2 bg-card">
+          {/* <Card className="md:col-span-2 bg-card">
             <CardContent className="p-6">
               <h2 className="text-xl font-semibold mb-4">Questions & Answers</h2>
               <div className="space-y-6">
@@ -143,7 +143,7 @@ export default function ResultsPage({ params }: { params: Promise<{ id: string }
                 ))}
               </div>
             </CardContent>
-          </Card>
+          </Card> */}
         </div>
 
         <div className="mt-6 flex justify-end">

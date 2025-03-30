@@ -1,8 +1,9 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { GoogleGenerativeAI } from "@google/generative-ai"
+import { loadConfig } from "@/lib/secure-storage";
 
 // Initialize Gemini
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "")
+let genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "")
 
 export async function POST(request: NextRequest) {
   try {
@@ -11,7 +12,14 @@ export async function POST(request: NextRequest) {
     const jobDescription = formData.get("jobDescription") as string
     const previousQuestions = formData.get("previousQuestions") as string
     const userProfile = formData.get("userProfile") as string
-
+    const config = await loadConfig();
+    if (!config?.geminiApiKey) {
+      return NextResponse.json(
+        { error: "Gemini API key not configured" },
+        { status: 400 }
+      );
+    }
+    genAI = new GoogleGenerativeAI(config.geminiApiKey)
     if (!audioBlob) {
       return NextResponse.json({ error: "No audio provided" }, { status: 400 })
     }
