@@ -29,6 +29,7 @@ import {
   Hourglass,
   Plus,
   Search,
+  Settings,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -41,20 +42,38 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Settings } from "lucide-react";
 import { Label } from "@/components/ui/label";
+import { toast } from "sonner";
+import Link from "next/link";
+import { Suspense } from "react";
 
 export default function Dashboard() {
   const router = useRouter();
-  const { sessions, setCurrentSession, fetchSessions, isLoading, config } =
+  const { sessions, setCurrentSession, fetchSessions, isLoading, config, updateConfig } =
     useInterviewStore();
   const [searchTerm, setSearchTerm] = useState("");
   const [activeTab, setActiveTab] = useState("all");
   const [isConfigDialogOpen, setIsConfigDialogOpen] = useState(false);
+  const [configFormData, setConfigFormData] = useState({
+    geminiApiKey: "",
+    mongodbUri: "",
+    elevenLabsApiKey: "",
+  });
+  const [isConfigLoading, setIsConfigLoading] = useState(false);
 
   useEffect(() => {
     fetchSessions();
   }, [fetchSessions]);
+
+  useEffect(() => {
+    if (config) {
+      setConfigFormData({
+        geminiApiKey: config.geminiApiKey || "",
+        mongodbUri: config.mongodbUri || "",
+        elevenLabsApiKey: config.elevenLabsApiKey || "",
+      });
+    }
+  }, [config]);
 
   const formatDate = (date: Date) => {
     return formatDistanceToNow(new Date(date), { addSuffix: true });
@@ -95,6 +114,37 @@ export default function Dashboard() {
     router.push(`/results/${sessionId}`);
   };
 
+  const handleConfigSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsConfigLoading(true);
+
+    try {
+      const response = await fetch("/api/config", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(configFormData),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to save configuration");
+      }
+
+      const data = await response.json();
+      updateConfig(data);
+      toast.success("Configuration saved successfully");
+      setIsConfigDialogOpen(false);
+    } catch (error) {
+      console.error("Error saving configuration:", error);
+      toast.error("Error", {
+        description: "Failed to save configuration. Please try again.",
+      });
+    } finally {
+      setIsConfigLoading(false);
+    }
+  };
+
   const filteredSessions = sessions.filter(
     (session) =>
       session.jobTitle.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -117,7 +167,111 @@ export default function Dashboard() {
       <div className="max-w-7xl mx-auto">
         <div className="flex justify-between items-center mb-8">
           <h1 className="text-2xl font-bold">Dashboard</h1>
-          <NewSessionDialog />
+          <div className="flex gap-2">
+            <Dialog open={isConfigDialogOpen} onOpenChange={setIsConfigDialogOpen}>
+              <DialogTrigger asChild>
+                <Button variant="outline">
+                  <Settings className="h-4 w-4 mr-2" />
+                  API Configuration
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>API Configuration</DialogTitle>
+                  <DialogDescription>
+                    Configure your API keys and database connection
+                  </DialogDescription>
+                </DialogHeader>
+                <form onSubmit={handleConfigSubmit} className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="geminiApiKey">Gemini API Key</Label>
+                    <Input
+                      id="geminiApiKey"
+                      type="password"
+                      value={configFormData.geminiApiKey}
+                      onChange={(e) =>
+                        setConfigFormData((prev) => ({
+                          ...prev,
+                          geminiApiKey: e.target.value,
+                        }))
+                      }
+                      placeholder="Enter your Gemini API key"
+                    />
+                    <p className="text-sm text-muted-foreground">
+                      Get your API key from{" "}
+                      <a
+                        href="https://makersuite.google.com/app/apikey"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-primary hover:underline"
+                      >
+                        Google AI Studio
+                      </a>
+                    </p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="mongodbUri">MongoDB URI</Label>
+                    <Input
+                      id="mongodbUri"
+                      type="password"
+                      value={configFormData.mongodbUri}
+                      onChange={(e) =>
+                        setConfigFormData((prev) => ({
+                          ...prev,
+                          mongodbUri: e.target.value,
+                        }))
+                      }
+                      placeholder="Enter your MongoDB connection string"
+                    />
+                    <p className="text-sm text-muted-foreground">
+                      Get your connection string from{" "}
+                      <a
+                        href="https://www.mongodb.com/cloud/atlas"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-primary hover:underline"
+                      >
+                        MongoDB Atlas
+                      </a>
+                    </p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="elevenLabsApiKey">ElevenLabs API Key</Label>
+                    <Input
+                      id="elevenLabsApiKey"
+                      type="password"
+                      value={configFormData.elevenLabsApiKey}
+                      onChange={(e) =>
+                        setConfigFormData((prev) => ({
+                          ...prev,
+                          elevenLabsApiKey: e.target.value,
+                        }))
+                      }
+                      placeholder="Enter your ElevenLabs API key"
+                    />
+                    <p className="text-sm text-muted-foreground">
+                      Get your API key from{" "}
+                      <a
+                        href="https://elevenlabs.io"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-primary hover:underline"
+                      >
+                        ElevenLabs
+                      </a>
+                    </p>
+                  </div>
+
+                  <Button type="submit" disabled={isConfigLoading} className="w-full">
+                    {isConfigLoading ? "Saving..." : "Save Configuration"}
+                  </Button>
+                </form>
+              </DialogContent>
+            </Dialog>
+            <NewSessionDialog />
+          </div>
         </div>
 
         <div className="mb-6">
@@ -397,10 +551,6 @@ function EmptyState({ onCreateNew, searchTerm, type }: EmptyStateProps) {
         {icon}
         <h2 className="text-xl font-semibold mb-2">{message}</h2>
         <p className="text-zinc-600 dark:text-zinc-300 mb-6">{description}</p>
-        <Button onClick={onCreateNew} className="gap-2">
-          <Plus className="h-4 w-4" />
-          Create New Session
-        </Button>
       </div>
     </div>
   );

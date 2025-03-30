@@ -31,19 +31,12 @@ import {
 
 export default function SettingsPage() {
   const router = useRouter();
-  const { userProfile, updateUserProfile, fetchUserProfile, config, updateConfig } = useInterviewStore();
+  const { userProfile, updateUserProfile, fetchUserProfile } = useInterviewStore();
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [formData, setFormData] = React.useState<UserProfile | null>(null);
   const [isLoading, setIsLoading] = React.useState(true);
-  const [configDialogOpen, setConfigDialogOpen] = useState(false);
-  const [configFormData, setConfigFormData] = useState({
-    geminiApiKey: "",
-    mongodbUri: "",
-    elevenLabsApiKey: "",
-  });
-  const [isConfigLoading, setIsConfigLoading] = useState(false);
+  const isInitialMount = React.useRef(true);
 
-  // Fetch user profile only once when component mounts
   React.useEffect(() => {
     const loadProfile = async () => {
       try {
@@ -59,25 +52,11 @@ export default function SettingsPage() {
       }
     };
 
-    loadProfile();
-  }, []); // Empty dependency array means this runs once on mount
-
-  // Update form data when userProfile changes
-  React.useEffect(() => {
-    if (userProfile) {
-      setFormData(userProfile);
+    if (isInitialMount.current) {
+      loadProfile();
+      isInitialMount.current = false;
     }
-  }, [userProfile]);
-
-  useEffect(() => {
-    if (config) {
-      setConfigFormData({
-        geminiApiKey: config.geminiApiKey || "",
-        mongodbUri: config.mongodbUri || "",
-        elevenLabsApiKey: config.elevenLabsApiKey || "",
-      });
-    }
-  }, [config]);
+  }, [fetchUserProfile, userProfile]);
 
   const handleInputChange = (
     field: keyof UserProfile,
@@ -255,37 +234,6 @@ export default function SettingsPage() {
     }
   };
 
-  const handleConfigSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsConfigLoading(true);
-
-    try {
-      const response = await fetch("/api/config", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(configFormData),
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to save configuration");
-      }
-
-      const data = await response.json();
-      updateConfig(data);
-      toast.success("Configuration saved successfully");
-      setConfigDialogOpen(false);
-    } catch (error) {
-      console.error("Error saving configuration:", error);
-      toast.error("Error", {
-        description: "Failed to save configuration. Please try again.",
-      });
-    } finally {
-      setIsConfigLoading(false);
-    }
-  };
-
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -312,108 +260,6 @@ export default function SettingsPage() {
       <div className="container mx-auto p-4">
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-2xl font-bold">Settings</h1>
-          <Dialog open={configDialogOpen} onOpenChange={setConfigDialogOpen}>
-            <DialogTrigger asChild>
-              <Button variant="outline">
-                <Settings className="h-4 w-4 mr-2" />
-                API Configuration
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>API Configuration</DialogTitle>
-                <DialogDescription>
-                  Configure your API keys and database connection
-                </DialogDescription>
-              </DialogHeader>
-              <form onSubmit={handleConfigSubmit} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="geminiApiKey">Gemini API Key</Label>
-                  <Input
-                    id="geminiApiKey"
-                    type="password"
-                    value={configFormData.geminiApiKey}
-                    onChange={(e) =>
-                      setConfigFormData((prev) => ({
-                        ...prev,
-                        geminiApiKey: e.target.value,
-                      }))
-                    }
-                    placeholder="Enter your Gemini API key"
-                  />
-                  <p className="text-sm text-muted-foreground">
-                    Get your API key from{" "}
-                    <a
-                      href="https://makersuite.google.com/app/apikey"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-primary hover:underline"
-                    >
-                      Google AI Studio
-                    </a>
-                  </p>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="mongodbUri">MongoDB URI</Label>
-                  <Input
-                    id="mongodbUri"
-                    type="password"
-                    value={configFormData.mongodbUri}
-                    onChange={(e) =>
-                      setConfigFormData((prev) => ({
-                        ...prev,
-                        mongodbUri: e.target.value,
-                      }))
-                    }
-                    placeholder="Enter your MongoDB connection string"
-                  />
-                  <p className="text-sm text-muted-foreground">
-                    Get your connection string from{" "}
-                    <a
-                      href="https://www.mongodb.com/cloud/atlas"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-primary hover:underline"
-                    >
-                      MongoDB Atlas
-                    </a>
-                  </p>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="elevenLabsApiKey">ElevenLabs API Key</Label>
-                  <Input
-                    id="elevenLabsApiKey"
-                    type="password"
-                    value={configFormData.elevenLabsApiKey}
-                    onChange={(e) =>
-                      setConfigFormData((prev) => ({
-                        ...prev,
-                        elevenLabsApiKey: e.target.value,
-                      }))
-                    }
-                    placeholder="Enter your ElevenLabs API key"
-                  />
-                  <p className="text-sm text-muted-foreground">
-                    Get your API key from{" "}
-                    <a
-                      href="https://elevenlabs.io"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-primary hover:underline"
-                    >
-                      ElevenLabs
-                    </a>
-                  </p>
-                </div>
-
-                <Button type="submit" disabled={isConfigLoading} className="w-full">
-                  {isConfigLoading ? "Saving..." : "Save Configuration"}
-                </Button>
-              </form>
-            </DialogContent>
-          </Dialog>
         </div>
 
         <div className="space-y-8">

@@ -4,10 +4,11 @@ import { ObjectId } from "mongodb";
 
 export async function GET(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const client = await getMongoClient();
+    const resolvedParams = await params;
     if (!client) {
       return NextResponse.json(
         { error: "Database connection failed" },
@@ -18,7 +19,7 @@ export async function GET(
     const db = client.db("interview-ai");
     const session = await db
       .collection("sessions")
-      .findOne({ _id: new ObjectId(params.id) });
+      .findOne({ _id: new ObjectId(resolvedParams.id) });
 
     if (!session) {
       return NextResponse.json(
@@ -39,10 +40,11 @@ export async function GET(
 
 export async function PUT(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const client = await getMongoClient();
+    const resolvedParams = await params;
     if (!client) {
       return NextResponse.json(
         { error: "Database connection failed" },
@@ -55,7 +57,7 @@ export async function PUT(
     const result = await db
       .collection("sessions")
       .updateOne(
-        { _id: new ObjectId(params.id) },
+        { _id: new ObjectId(resolvedParams.id) },
         { $set: body }
       );
 
@@ -78,10 +80,11 @@ export async function PUT(
 
 export async function DELETE(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const client = await getMongoClient();
+    const resolvedParams = await params;
     if (!client) {
       return NextResponse.json(
         { error: "Database connection failed" },
@@ -92,7 +95,7 @@ export async function DELETE(
     const db = client.db("interview-ai");
     const result = await db
       .collection("sessions")
-      .deleteOne({ _id: new ObjectId(params.id) });
+      .deleteOne({ _id: new ObjectId(resolvedParams.id) });
 
     if (result.deletedCount === 0) {
       return NextResponse.json(

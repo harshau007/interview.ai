@@ -23,7 +23,10 @@ export type InterviewSession = {
 };
 
 export async function getSessionsCollection() {
-  const client = await clientPromise;
+  const client = await (await clientPromise)();
+  if (!client) {
+    throw new Error("Failed to connect to MongoDB");
+  }
   const db = client.db("interview-prep");
   return db.collection<InterviewSession>("sessions");
 }
@@ -34,7 +37,7 @@ export async function getAllSessions(userId: string) {
     .find({ userId })
     .sort({ createdAt: -1 })
     .toArray();
-  return sessions.map((session) => ({
+  return sessions.map((session: InterviewSession) => ({
     ...session,
     id: session.id.toString(),
   }));

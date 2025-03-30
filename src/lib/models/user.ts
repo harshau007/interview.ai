@@ -48,7 +48,10 @@ export type UserProfile = {
 };
 
 export async function getUsersCollection() {
-  const client = await clientPromise;
+  const client = await (await clientPromise)();
+  if (!client) {
+    throw new Error("Failed to connect to MongoDB");
+  }
   const db = client.db("interview-prep");
   return db.collection<UserProfile>("users");
 }
