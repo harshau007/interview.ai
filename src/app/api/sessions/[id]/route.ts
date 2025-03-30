@@ -1,13 +1,13 @@
 import { NextResponse } from "next/server";
 import clientPromise from "@/lib/mongodb";
-import { ObjectId } from "mongodb";
 
 export async function GET(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const client = await clientPromise();
+    const resolvedParams = await params;
     if (!client) {
       return NextResponse.json(
         { error: "Database connection failed" },
@@ -18,7 +18,7 @@ export async function GET(
     const db = client.db("interview-prep");
     const session = await db
       .collection("sessions")
-      .findOne({ id: params.id });
+      .findOne({ id: resolvedParams.id });
 
     if (!session) {
       return NextResponse.json(
@@ -39,10 +39,11 @@ export async function GET(
 
 export async function PUT(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{id: string}> }
 ) {
   try {
     const client = await clientPromise();
+    const resolvedParams = await params;
     if (!client) {
       return NextResponse.json(
         { error: "Database connection failed" },
@@ -55,7 +56,7 @@ export async function PUT(
     const result = await db
       .collection("sessions")
       .updateOne(
-        { id: params.id },
+        { id: resolvedParams.id },
         { $set: body }
       );
 
@@ -78,10 +79,11 @@ export async function PUT(
 
 export async function DELETE(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const client = await clientPromise();
+    const resolvedParams = await params;
     if (!client) {
       return NextResponse.json(
         { error: "Database connection failed" },
@@ -92,7 +94,7 @@ export async function DELETE(
     const db = client.db("interview-prep");
     const result = await db
       .collection("sessions")
-      .deleteOne({ id: params.id });
+      .deleteOne({ id: resolvedParams.id });
 
     if (result.deletedCount === 0) {
       return NextResponse.json(

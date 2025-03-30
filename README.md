@@ -1,6 +1,6 @@
-# Interview.ai
+# Interview.AI
 
-A modern AI-powered interview preparation platform that helps users practice technical interviews with real-time feedback and guidance.
+An AI-powered interview preparation platform that helps you practice interviews with an AI interviewer.
 
 ## Features
 
@@ -20,80 +20,116 @@ A modern AI-powered interview preparation platform that helps users practice tec
 - **Styling**: Tailwind CSS
 - **Database**: MongoDB
 - **State Management**: Zustand
-- **AI Services**: 
+- **AI Services**:
   - Google Gemini AI
   - ElevenLabs (Text-to-Speech)
 - **UI Components**: ShadCN & Radix UI
 
 ## Prerequisites
 
-- Node.js 18.x or later
-- MongoDB instance
+- Node.js 18+ or Docker
+- MongoDB (if running locally)
 - API keys for:
-  - Google Gemini AI
+  - Google Gemini
   - ElevenLabs
-  - MongoDB Atlas (or your MongoDB instance)
-
-## Environment Variables
-
-Create a `.env` file in the root directory with the following variables:
-
-```env
-# MongoDB
-MONGODB_URI=your-mongodb-uri
-
-# AI Services
-GEMINI_API_KEY=your-gemini-api-key
-ELEVENLABS_API_KEY=your-elevenlabs-api-key
-```
 
 ## Getting Started
 
+### Using Docker (Recommended)
+
 1. Clone the repository:
+
    ```bash
-   git clone https://github.com/harshau007/interview.ai.git
+   git clone https://github.com/harshau04/interview.ai.git
    cd interview.ai
    ```
 
-2. Install dependencies:
+2. Create a `.env` file:
+
+   ```bash
+   cp .env.example .env
+   ```
+
+   Edit the `.env` file with your API keys and configuration.
+
+3. Run using Docker Compose:
+
+   ```bash
+   docker-compose up -d
+   ```
+
+4. Access the application at http://localhost:3000
+
+### Using Docker Run (Alternative)
+
+1. Create a `.env` file as described above.
+
+2. Run the container:
+   ```bash
+   docker run -d \
+     -p 3000:3000 \
+     -v $(pwd)/.env:/app/.env \
+     --name interview-ai \
+     harshau04/interview.ai:latest
+   ```
+
+### Local Development
+
+1. Install dependencies:
+
    ```bash
    npm install
-   # or
-   yarn install
    ```
 
-3. Set up environment variables:
-   - Copy `.env.example` to `.env`
-   - Fill in your API keys and configuration
+2. Create a `.env.local` file:
 
-4. Run the development server:
+   ```bash
+   cp .env.example .env.local
+   ```
+
+   Edit the `.env.local` file with your API keys and configuration.
+
+3. Start the development server:
+
    ```bash
    npm run dev
-   # or
-   yarn dev
    ```
 
-5. Open [http://localhost:3000](http://localhost:3000) in your browser
+4. Access the application at http://localhost:3000
 
-## Project Structure
+## Environment Variables
 
+| Variable           | Description               | Required |
+| ------------------ | ------------------------- | -------- |
+| GEMINI_API_KEY     | Google Gemini API key     | Yes      |
+| ELEVENLABS_API_KEY | ElevenLabs API key        | Yes      |
+| MONGODB_URI        | MongoDB connection string | Yes      |
+
+## Docker Commands
+
+### Start the application
+
+```bash
+docker-compose up -d
 ```
-interview.ai/
-├── src/
-│   ├── app/                 # Next.js app router pages
-│   ├── components/          # React components
-│   ├── lib/                 # Utility functions and configurations
-│   └── types/              # TypeScript type definitions
-├── public/                 # Static assets
+
+### Stop the application
+
+```bash
+docker-compose down
 ```
 
-## API Routes
+### View logs
 
-- `/api/sessions/*` - Interview session management
-- `/api/gemini` - AI interview processing
-- `/api/elevenlabs` - Text-to-speech conversion
-- `/api/config` - Configuration management
-- `/api/user` = User management
+```bash
+docker-compose logs -f
+```
+
+### Rebuild the application
+
+```bash
+docker-compose up -d --build
+```
 
 ## Contributing
 

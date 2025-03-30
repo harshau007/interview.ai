@@ -168,7 +168,7 @@ export default function Dashboard() {
         <div className="flex justify-between items-center mb-8">
           <h1 className="text-2xl font-bold">Dashboard</h1>
           <div className="flex gap-2">
-            <Dialog open={isConfigDialogOpen} onOpenChange={setIsConfigDialogOpen}>
+            {/* <Dialog open={isConfigDialogOpen} onOpenChange={setIsConfigDialogOpen}>
               <DialogTrigger asChild>
                 <Button variant="outline">
                   <Settings className="h-4 w-4 mr-2" />
@@ -269,7 +269,7 @@ export default function Dashboard() {
                   </Button>
                 </form>
               </DialogContent>
-            </Dialog>
+            </Dialog> */}
             <NewSessionDialog />
           </div>
         </div>

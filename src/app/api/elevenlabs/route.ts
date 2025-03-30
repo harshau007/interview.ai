@@ -15,7 +15,7 @@ export async function POST(request: Request) {
     // }
 
     const elevenlabs = new ElevenLabsClient({
-      apiKey: config?.elevenLabsApiKey || process.env.ELEVENLABS_API_KEY,
+      apiKey: process.env.ELEVENLABS_API_KEY,
     });
 
     const audio = await elevenlabs.generate({
