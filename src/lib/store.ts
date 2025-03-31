@@ -65,15 +65,14 @@ export const useStore = create<StoreState>()(
       init: async () => {
         try {
           set({ isLoading: true, error: null });
-          const { userId } = get();
+          
+          // Generate a new UUID if none exists
+          const currentUserId = get().userId || uuidv4();
+          set({ userId: currentUserId });
 
-          if (!userId) {
-            const newUserId = uuidv4();
-            set({ userId: newUserId });
-          }
-
+          // Create default user profile
           const defaultUser: UserProfile = {
-            _id: get().userId,
+            _id: currentUserId,
             name: "",
             email: "",
             skills: [],
@@ -85,10 +84,45 @@ export const useStore = create<StoreState>()(
             updatedAt: new Date(),
           };
 
-          set({ userProfile: defaultUser, isLoading: false });
+          // Try to load stored data
+          if (typeof window !== 'undefined') {
+            try {
+              const storedStore = localStorage.getItem('interview-store');
+              if (storedStore) {
+                const parsedStore = JSON.parse(storedStore);
+                if (parsedStore.state.userProfile) {
+                  set({ userProfile: parsedStore.state.userProfile });
+                } else {
+                  set({ userProfile: defaultUser });
+                }
+              } else {
+                set({ userProfile: defaultUser });
+              }
+            } catch (e) {
+              console.error("Error loading stored data:", e);
+              set({ userProfile: defaultUser });
+            }
+          } else {
+            set({ userProfile: defaultUser });
+          }
+          
+          set({ isLoading: false });
         } catch (error) {
           console.error("Error initializing store:", error);
           set({
+            userId: uuidv4(),
+            userProfile: {
+              _id: uuidv4(),
+              name: "",
+              email: "",
+              skills: [],
+              experience: [],
+              education: [],
+              projects: [],
+              certifications: [],
+              createdAt: new Date(),
+              updatedAt: new Date(),
+            },
             error: error instanceof Error ? error.message : "Failed to initialize store",
             isLoading: false,
           });
@@ -104,12 +138,11 @@ export const useStore = create<StoreState>()(
         try {
           set({ isLoading: true, error: null });
           const { userId } = get();
-          if (!userId) return;
-
-          const profile = await fetch(`/api/users/${userId}`).then((res) =>
-            res.json()
-          );
-          set({ userProfile: profile, isLoading: false });
+          if (!userId) {
+            throw new Error("User ID not found");
+          }
+          // Fetch user profile from your backend here
+          set({ isLoading: false });
         } catch (error) {
           console.error("Error fetching user profile:", error);
           set({
@@ -122,14 +155,24 @@ export const useStore = create<StoreState>()(
       updateUserProfile: async (profile: Partial<UserProfile>) => {
         try {
           set({ isLoading: true, error: null });
-          const { userId } = get();
-          if (!userId) return;
+          const currentProfile = get().userProfile;
+          if (!currentProfile) {
+            throw new Error("No user profile found");
+          }
 
-          const updatedProfile = await fetch(`/api/users/${userId}`, {
-            method: "PUT",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(profile),
-          }).then((res) => res.json());
+          // Validate required fields
+          if (profile.name === "") {
+            throw new Error("Name is required");
+          }
+          if (profile.email === "") {
+            throw new Error("Email is required");
+          }
+
+          const updatedProfile = {
+            ...currentProfile,
+            ...profile,
+            updatedAt: new Date(),
+          };
 
           set({ userProfile: updatedProfile, isLoading: false });
         } catch (error) {
@@ -138,6 +181,7 @@ export const useStore = create<StoreState>()(
             error: error instanceof Error ? error.message : "Failed to update user profile",
             isLoading: false,
           });
+          throw error;
         }
       },
 
@@ -161,10 +205,15 @@ export const useStore = create<StoreState>()(
 
       createSession: async (jobTitle: string, jobDescription: string, companyName: string) => {
         try {
-          set({ isLoading: true, error: null });
-          const { userId } = get();
-          if (!userId) throw new Error("User not initialized");
+          const { userProfile, userId } = get();
+          
+          // Validate user profile
+          if (!userProfile || !userProfile.name || !userProfile.email) {
+            throw new Error("Please complete your profile in settings before starting an interview");
+          }
 
+          set({ isLoading: true, error: null });
+          
           const session = await createSession({
             userId,
             jobTitle,

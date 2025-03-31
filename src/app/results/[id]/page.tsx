@@ -1,5 +1,6 @@
 "use client";
 
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
@@ -8,9 +9,12 @@ import { ArrowLeft, Download } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { Badge } from "@/components/ui/badge";
 
-export default function ResultsPage({ params }: { params: { id: string } }) {
+export default function ResultsPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
   const router = useRouter();
   const { getCurrentSession } = useStore();
   const [session, setSession] = useState<any>(null);
@@ -50,7 +54,9 @@ export default function ResultsPage({ params }: { params: { id: string } }) {
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
           <h1 className="text-2xl font-bold mb-4">Session Not Found</h1>
-          <Button onClick={() => router.push("/dashboard")}>Return to Dashboard</Button>
+          <Button onClick={() => router.push("/dashboard")}>
+            Return to Dashboard
+          </Button>
         </div>
       </div>
     );
@@ -79,7 +85,9 @@ export default function ResultsPage({ params }: { params: { id: string } }) {
                     className="absolute inset-0 w-full h-full rounded-full"
                   />
                   <div className="absolute inset-0 flex items-center justify-center">
-                    <span className="text-3xl font-bold">{session.score || 0}%</span>
+                    <span className="text-3xl font-bold">
+                      {session.score || 0}%
+                    </span>
                   </div>
                 </div>
               </div>
@@ -91,7 +99,9 @@ export default function ResultsPage({ params }: { params: { id: string } }) {
                 {session.companyName && (
                   <div>
                     <h3 className="font-medium mb-2">Company</h3>
-                    <p className="text-muted-foreground">{session.companyName}</p>
+                    <p className="text-muted-foreground">
+                      {session.companyName}
+                    </p>
                   </div>
                 )}
                 <div>
@@ -109,7 +119,9 @@ export default function ResultsPage({ params }: { params: { id: string } }) {
             <CardContent className="p-6">
               <h2 className="text-xl font-semibold mb-4">Feedback</h2>
               <div className="prose prose-sm dark:prose-invert max-w-none">
-                <p className="text-muted-foreground whitespace-pre-line">{session.feedback}</p>
+                <p className="text-muted-foreground whitespace-pre-line">
+                  {session.feedback}
+                </p>
               </div>
             </CardContent>
           </Card>
@@ -117,7 +129,9 @@ export default function ResultsPage({ params }: { params: { id: string } }) {
           {/* Questions and Answers */}
           <Card className="md:col-span-2 bg-card">
             <CardContent className="p-6">
-              <h2 className="text-xl font-semibold mb-4">Questions & Answers</h2>
+              <h2 className="text-xl font-semibold mb-4">
+                Questions & Answers
+              </h2>
               <div className="space-y-6">
                 {session.questions.map((q: any, index: number) => (
                   <div key={q.id} className="space-y-2">
@@ -129,7 +143,9 @@ export default function ResultsPage({ params }: { params: { id: string } }) {
                     </div>
                     <p className="text-muted-foreground">{q.question}</p>
                     <div className="pl-4 border-l-2 border-primary/20">
-                      <p className="text-sm text-muted-foreground whitespace-pre-line">{q.answer}</p>
+                      <p className="text-sm text-muted-foreground whitespace-pre-line">
+                        {q.answer}
+                      </p>
                       {q.feedback && (
                         <div className="mt-2 text-sm">
                           <p className="font-medium text-primary">Feedback:</p>

@@ -28,7 +28,12 @@ export function AppSidebar({ className }: SidebarProps) {
   const pathname = usePathname()
   const [isMobileOpen, setIsMobileOpen] = useState(false)
   const [isCollapsed, setIsCollapsed] = useState(false)
+  const [mounted, setMounted] = useState(false)
   const { userProfile } = useStore()
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   // Close mobile sidebar when path changes
   useEffect(() => {
@@ -85,24 +90,23 @@ export function AppSidebar({ className }: SidebarProps) {
       <Button
         variant="ghost"
         size="icon"
-        className="fixed top-4 left-4 z-50 lg:hidden"
+        className="fixed top-4 left-4 z-[100] lg:hidden"
         onClick={() => setIsMobileOpen(!isMobileOpen)}
       >
         {isMobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
       </Button>
 
-      {/* Mobile Sidebar */}
+      {/* Mobile Backdrop */}
+      {isMobileOpen && (
+        <div
+          className="fixed inset-0 z-[90] bg-black/50 backdrop-blur-sm lg:hidden"
+          onClick={() => setIsMobileOpen(false)}
+        />
+      )}
+
       <div
         className={cn(
-          "fixed inset-0 z-40 bg-background/80 backdrop-blur-sm lg:hidden transition-opacity duration-200",
-          isMobileOpen ? "opacity-100" : "opacity-0 pointer-events-none",
-        )}
-        onClick={() => setIsMobileOpen(false)}
-      />
-
-      <Sidebar
-        className={cn(
-          "fixed top-0 left-0 z-40 h-full bg-background border-r transition-all duration-300 ease-in-out",
+          "fixed top-0 left-0 z-[95] h-full bg-background border-r transition-transform duration-300 ease-in-out",
           isCollapsed ? "w-[70px]" : "w-[240px]",
           isMobileOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0",
           className,
@@ -115,34 +119,40 @@ export function AppSidebar({ className }: SidebarProps) {
                 <span className="font-bold text-primary">AI Interview</span>
               </Link>
             )}
-            <Button variant="ghost" size="icon" className="hidden lg:flex" onClick={toggleSidebar}>
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="hidden lg:flex" 
+              onClick={toggleSidebar}
+            >
               <ChevronRight className={cn("h-4 w-4 transition-transform", !isCollapsed && "rotate-180")} />
             </Button>
           </div>
 
-          <SidebarContent>
-            <SidebarGroup>
-              <SidebarGroupLabel>Menu</SidebarGroupLabel>
-              <SidebarGroupContent>
-                <SidebarMenu>
-                  {routes.map((route) => (
-                    <SidebarMenuItem key={route.href}>
-                      <SidebarMenuButton
-                        asChild
-                        isActive={route.active}
-                        tooltip={isCollapsed ? route.label : undefined}
-                      >
-                        <Link href={route.href}>
-                          <route.icon className="h-5 w-5" />
-                          {!isCollapsed && <span>{route.label}</span>}
-                        </Link>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                  ))}
-                </SidebarMenu>
-              </SidebarGroupContent>
-            </SidebarGroup>
-          </SidebarContent>
+          <div className="flex-1 overflow-y-auto">
+            <div className="px-3 py-2">
+              <div className="mb-2 px-2 text-xs font-semibold text-muted-foreground">
+                Menu
+              </div>
+              <div className="space-y-1">
+                {routes.map((route) => (
+                  <Link
+                    key={route.href}
+                    href={route.href}
+                    className={cn(
+                      "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
+                      route.active
+                        ? "bg-primary text-primary-foreground"
+                        : "hover:bg-accent hover:text-accent-foreground"
+                    )}
+                  >
+                    <route.icon className="h-5 w-5" />
+                    {!isCollapsed && <span>{route.label}</span>}
+                  </Link>
+                ))}
+              </div>
+            </div>
+          </div>
 
           <div className="mt-auto px-3 py-3 border-t">
             <div className="flex items-center justify-between">
@@ -161,11 +171,11 @@ export function AppSidebar({ className }: SidebarProps) {
                   </div>
                 )}
               </div>
-              {!isCollapsed && <ThemeToggle />}
+              {!isCollapsed && mounted && <ThemeToggle />}
             </div>
           </div>
         </div>
-      </Sidebar>
+      </div>
     </>
   )
 }

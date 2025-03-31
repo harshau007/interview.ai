@@ -1,9 +1,9 @@
 "use client";
 
-import * as React from "react";
-import { useRouter } from "next/navigation";
-import { toast } from "sonner";
 import { Briefcase, Building, Loader2 } from "lucide-react";
+import { useRouter } from "next/navigation";
+import * as React from "react";
+import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -13,7 +13,6 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -26,27 +25,34 @@ const templates = [
     id: "frontend",
     title: "Frontend Developer",
     company: "Tech Corp",
-    description: "Interview for a frontend developer position focusing on React, TypeScript, and modern web development practices.",
+    description:
+      "Interview for a frontend developer position focusing on React, TypeScript, and modern web development practices.",
   },
   {
     id: "backend",
     title: "Backend Developer",
     company: "Data Systems",
-    description: "Interview for a backend developer position focusing on Node.js, databases, and API design.",
+    description:
+      "Interview for a backend developer position focusing on Node.js, databases, and API design.",
   },
   {
     id: "fullstack",
     title: "Full Stack Developer",
     company: "StartupX",
-    description: "Interview for a full stack developer position covering both frontend and backend technologies.",
+    description:
+      "Interview for a full stack developer position covering both frontend and backend technologies.",
   },
 ];
 
-export function NewSessionDialog() {
+interface NewSessionDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}
+
+export function NewSessionDialog({ open, onOpenChange }: NewSessionDialogProps) {
   const router = useRouter();
   const { createSession } = useStore();
 
-  const [open, setOpen] = React.useState(false);
   const [jobTitle, setJobTitle] = React.useState("");
   const [companyName, setCompanyName] = React.useState("");
   const [jobDescription, setJobDescription] = React.useState("");
@@ -79,7 +85,7 @@ export function NewSessionDialog() {
       });
 
       // Close dialog and reset form
-      setOpen(false);
+      onOpenChange(false);
       setJobTitle("");
       setCompanyName("");
       setJobDescription("");
@@ -97,15 +103,16 @@ export function NewSessionDialog() {
   };
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button>New Interview</Button>
-      </DialogTrigger>
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      {/* <DialogTrigger asChild>
+        <Button data-dialog-trigger>New Interview</Button>
+      </DialogTrigger> */}
       <DialogContent className="sm:max-w-[600px]">
         <DialogHeader>
           <DialogTitle>Create New Interview Session</DialogTitle>
           <DialogDescription>
-            Enter the job details to start a personalized interview practice session
+            Enter the job details to start a personalized interview practice
+            session
           </DialogDescription>
         </DialogHeader>
 
@@ -119,10 +126,7 @@ export function NewSessionDialog() {
             <form onSubmit={handleSubmit}>
               <div className="grid gap-4 py-4">
                 <div className="space-y-2">
-                  <Label
-                    htmlFor="jobTitle"
-                    className="flex items-center gap-2"
-                  >
+                  <Label htmlFor="jobTitle" className="flex items-center gap-2">
                     <Briefcase className="h-4 w-4" />
                     Job Title
                   </Label>
@@ -204,4 +208,4 @@ export function NewSessionDialog() {
       </DialogContent>
     </Dialog>
   );
-} 
+}
