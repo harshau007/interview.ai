@@ -127,7 +127,7 @@ export default function ResultsPage({
           </Card>
 
           {/* Questions and Answers */}
-          <Card className="md:col-span-2 bg-card">
+          {/* <Card className="md:col-span-2 bg-card">
             <CardContent className="p-6">
               <h2 className="text-xl font-semibold mb-4">
                 Questions & Answers
@@ -143,10 +143,10 @@ export default function ResultsPage({
                     </div>
                     <p className="text-muted-foreground">{q.question}</p>
                     <div className="pl-4 border-l-2 border-primary/20">
-                      <p className="text-sm text-muted-foreground whitespace-pre-line">
+                      {/* <p className="text-sm text-muted-foreground whitespace-pre-line">
                         {q.answer}
-                      </p>
-                      {q.feedback && (
+                      </p> */}
+                      {/* {q.feedback && (
                         <div className="mt-2 text-sm">
                           <p className="font-medium text-primary">Feedback:</p>
                           <p className="text-muted-foreground">{q.feedback}</p>
@@ -154,10 +154,10 @@ export default function ResultsPage({
                       )}
                     </div>
                   </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
+                ))} */}
+              {/* </div>
+            </CardContent> */}
+          {/* </Card> */}
         </div>
 
         <div className="mt-6 flex justify-end">
