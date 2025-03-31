@@ -3,29 +3,27 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { useInterviewStore } from "@/lib/store";
+import { useStore } from "@/lib/store";
 import { ArrowLeft, Download } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { use, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 
-export default function ResultsPage({ params }: { params: Promise<{ id: string }> }) {
+export default function ResultsPage({ params }: { params: { id: string } }) {
   const router = useRouter();
-  const { getCurrentSession } = useInterviewStore();
+  const { getCurrentSession } = useStore();
   const [session, setSession] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const resolvedParams = use(params)
 
   useEffect(() => {
     const loadSession = async () => {
       try {
-        const response = await fetch(`/api/sessions/${resolvedParams.id}`);
-        if (!response.ok) {
-          throw new Error("Failed to load session");
+        const session = getCurrentSession();
+        if (!session) {
+          throw new Error("Session not found");
         }
-        const data = await response.json();
-        setSession(data);
+        setSession(session);
       } catch (error) {
         console.error("Error loading session:", error);
         toast.error("Error", {
@@ -37,7 +35,7 @@ export default function ResultsPage({ params }: { params: Promise<{ id: string }
     };
 
     loadSession();
-  }, [resolvedParams.id]);
+  }, [getCurrentSession]);
 
   if (isLoading) {
     return (
@@ -99,7 +97,7 @@ export default function ResultsPage({ params }: { params: Promise<{ id: string }
                 <div>
                   <h3 className="font-medium mb-2">Date</h3>
                   <p className="text-muted-foreground">
-                    {new Date(session.completedAt).toLocaleDateString()}
+                    {new Date(session.updatedAt).toLocaleDateString()}
                   </p>
                 </div>
               </div>
@@ -117,7 +115,7 @@ export default function ResultsPage({ params }: { params: Promise<{ id: string }
           </Card>
 
           {/* Questions and Answers */}
-          {/* <Card className="md:col-span-2 bg-card">
+          <Card className="md:col-span-2 bg-card">
             <CardContent className="p-6">
               <h2 className="text-xl font-semibold mb-4">Questions & Answers</h2>
               <div className="space-y-6">
@@ -143,7 +141,7 @@ export default function ResultsPage({ params }: { params: Promise<{ id: string }
                 ))}
               </div>
             </CardContent>
-          </Card> */}
+          </Card>
         </div>
 
         <div className="mt-6 flex justify-end">

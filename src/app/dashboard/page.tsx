@@ -1,565 +1,123 @@
 "use client";
 
-import type React from "react";
-
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { type InterviewSession } from "@/lib/models/session";
-import { useInterviewStore } from "@/lib/store";
-import { formatDistanceToNow } from "date-fns";
-import {
-  AlertCircle,
-  ArrowRight,
-  BarChart,
-  Building,
-  CheckCircle,
-  Clock,
-  Eye,
-  Hourglass,
-  Plus,
-  Search,
-  Settings,
-  Trash2,
-} from "lucide-react";
-import { useRouter } from "next/navigation";
+import { NewSessionDialog } from "@/components/new-session-dialog";
+import { useStore } from "@/lib/store";
+import type { InterviewSession } from "@/lib/types";
 import { useEffect, useState } from "react";
-import { NewSessionDialog } from "@/components/new-session-dialog"
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import Link from "next/link";
-import { Suspense } from "react";
+import { useRouter } from "next/navigation";
 
 export default function Dashboard() {
-  const router = useRouter();
-  const { sessions, setCurrentSession, fetchSessions, isLoading, config, updateConfig, deleteSession } =
-    useInterviewStore();
-  const [searchTerm, setSearchTerm] = useState("");
+  const {
+    sessions,
+    currentSession,
+    isLoading,
+    error,
+    fetchSessions,
+    deleteSession,
+    setCurrentSession,
+  } = useStore();
+
   const [activeTab, setActiveTab] = useState("all");
-  const [isConfigDialogOpen, setIsConfigDialogOpen] = useState(false);
-  const [configFormData, setConfigFormData] = useState({
-    geminiApiKey: "",
-    mongodbUri: "",
-    elevenLabsApiKey: "",
-  });
-  const [isConfigLoading, setIsConfigLoading] = useState(false);
+
+  const router = useRouter();
 
   useEffect(() => {
     fetchSessions();
   }, [fetchSessions]);
 
-  useEffect(() => {
-    if (config) {
-      setConfigFormData({
-        geminiApiKey: config.geminiApiKey || "",
-        mongodbUri: config.mongodbUri || "",
-        elevenLabsApiKey: config.elevenLabsApiKey || "",
-      });
-    }
-  }, [config]);
-
-  const formatDate = (date: Date) => {
-    return formatDistanceToNow(new Date(date), { addSuffix: true });
+  const handleSessionClick = (session: InterviewSession) => {
+    setCurrentSession(session._id);
+    router.push(`/interview/${session._id}`);
   };
 
-  const getStatusBadge = (status: InterviewSession["status"]) => {
-    switch (status) {
-      case "not-started":
-        return (
-          <Badge variant="outline" className="flex items-center gap-1">
-            <Hourglass className="h-3 w-3" /> Not Started
-          </Badge>
-        );
-      case "in-progress":
-        return (
-          <Badge variant="secondary" className="flex items-center gap-1">
-            <AlertCircle className="h-3 w-3" /> In Progress
-          </Badge>
-        );
-      case "completed":
-        return (
-          <Badge className="bg-green-500 flex items-center gap-1">
-            <CheckCircle className="h-3 w-3" /> Completed
-          </Badge>
-        );
-      default:
-        return null;
-    }
-  };
-
-  const handleContinueSession = (sessionId: string) => {
-    setCurrentSession(sessionId);
-    router.push(`/interview/${sessionId}`);
-  };
-
-  const handleViewResults = (sessionId: string) => {
-    setCurrentSession(sessionId);
-    router.push(`/results/${sessionId}`);
-  };
-
-  const handleConfigSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsConfigLoading(true);
-
+  const handleSessionDelete = async (session: InterviewSession) => {
     try {
-      const response = await fetch("/api/config", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(configFormData),
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to save configuration");
-      }
-
-      const data = await response.json();
-      updateConfig(data);
-      toast.success("Configuration saved successfully");
-      setIsConfigDialogOpen(false);
-    } catch (error) {
-      console.error("Error saving configuration:", error);
-      toast.error("Error", {
-        description: "Failed to save configuration. Please try again.",
-      });
-    } finally {
-      setIsConfigLoading(false);
-    }
-  };
-
-  const filteredSessions = sessions.filter(
-    (session) =>
-      session.jobTitle.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      session.companyName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      session.jobDescription.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
-  const completedSessions = filteredSessions.filter(
-    (session) => session.status === "completed"
-  );
-  const inProgressSessions = filteredSessions.filter(
-    (session) => session.status === "in-progress"
-  );
-  const notStartedSessions = filteredSessions.filter(
-    (session) => session.status === "not-started"
-  );
-
-  return (
-    <div className="min-h-screen bg-zinc-100 dark:bg-zinc-900 p-4">
-      <div className="max-w-7xl mx-auto">
-        <div className="flex justify-between items-center mb-8">
-          <h1 className="text-2xl font-bold">Dashboard</h1>
-          <div className="flex gap-2">
-            {/* <Dialog open={isConfigDialogOpen} onOpenChange={setIsConfigDialogOpen}>
-              <DialogTrigger asChild>
-                <Button variant="outline">
-                  <Settings className="h-4 w-4 mr-2" />
-                  API Configuration
-                </Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>API Configuration</DialogTitle>
-                  <DialogDescription>
-                    Configure your API keys and database connection
-                  </DialogDescription>
-                </DialogHeader>
-                <form onSubmit={handleConfigSubmit} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="geminiApiKey">Gemini API Key</Label>
-                    <Input
-                      id="geminiApiKey"
-                      type="password"
-                      value={configFormData.geminiApiKey}
-                      onChange={(e) =>
-                        setConfigFormData((prev) => ({
-                          ...prev,
-                          geminiApiKey: e.target.value,
-                        }))
-                      }
-                      placeholder="Enter your Gemini API key"
-                    />
-                    <p className="text-sm text-muted-foreground">
-                      Get your API key from{" "}
-                      <a
-                        href="https://makersuite.google.com/app/apikey"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-primary hover:underline"
-                      >
-                        Google AI Studio
-                      </a>
-                    </p>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="mongodbUri">MongoDB URI</Label>
-                    <Input
-                      id="mongodbUri"
-                      type="password"
-                      value={configFormData.mongodbUri}
-                      onChange={(e) =>
-                        setConfigFormData((prev) => ({
-                          ...prev,
-                          mongodbUri: e.target.value,
-                        }))
-                      }
-                      placeholder="Enter your MongoDB connection string"
-                    />
-                    <p className="text-sm text-muted-foreground">
-                      Get your connection string from{" "}
-                      <a
-                        href="https://www.mongodb.com/cloud/atlas"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-primary hover:underline"
-                      >
-                        MongoDB Atlas
-                      </a>
-                    </p>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="elevenLabsApiKey">ElevenLabs API Key</Label>
-                    <Input
-                      id="elevenLabsApiKey"
-                      type="password"
-                      value={configFormData.elevenLabsApiKey}
-                      onChange={(e) =>
-                        setConfigFormData((prev) => ({
-                          ...prev,
-                          elevenLabsApiKey: e.target.value,
-                        }))
-                      }
-                      placeholder="Enter your ElevenLabs API key"
-                    />
-                    <p className="text-sm text-muted-foreground">
-                      Get your API key from{" "}
-                      <a
-                        href="https://elevenlabs.io"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-primary hover:underline"
-                      >
-                        ElevenLabs
-                      </a>
-                    </p>
-                  </div>
-
-                  <Button type="submit" disabled={isConfigLoading} className="w-full">
-                    {isConfigLoading ? "Saving..." : "Save Configuration"}
-                  </Button>
-                </form>
-              </DialogContent>
-            </Dialog> */}
-            <NewSessionDialog />
-          </div>
-        </div>
-
-        <div className="mb-6">
-          <Input
-            placeholder="Search sessions..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="max-w-sm"
-          />
-        </div>
-
-        <Tabs defaultValue="all" className="w-full" onValueChange={setActiveTab}>
-          <TabsList className="grid grid-cols-4 mb-6 w-full max-w-md mx-auto">
-            <TabsTrigger value="all">All</TabsTrigger>
-            <TabsTrigger value="completed">Completed</TabsTrigger>
-            <TabsTrigger value="in-progress">In Progress</TabsTrigger>
-            <TabsTrigger value="not-started">Not Started</TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="all">
-            {isLoading ? (
-              <SessionSkeleton />
-            ) : filteredSessions.length === 0 ? (
-              <EmptyState
-                onCreateNew={() => router.push("/new-session")}
-                searchTerm={searchTerm}
-              />
-            ) : (
-              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {filteredSessions.map((session) => (
-                  <SessionCard
-                    key={session.id}
-                    session={session}
-                    onContinue={handleContinueSession}
-                    onViewResults={handleViewResults}
-                    getStatusBadge={getStatusBadge}
-                    formatDate={formatDate}
-                  />
-                ))}
-              </div>
-            )}
-          </TabsContent>
-
-          <TabsContent value="completed">
-            {isLoading ? (
-              <SessionSkeleton />
-            ) : completedSessions.length === 0 ? (
-              <EmptyState
-                onCreateNew={() => router.push("/new-session")}
-                searchTerm={searchTerm}
-                type="completed"
-              />
-            ) : (
-              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {completedSessions.map((session) => (
-                  <SessionCard
-                    key={session.id}
-                    session={session}
-                    onContinue={handleContinueSession}
-                    onViewResults={handleViewResults}
-                    getStatusBadge={getStatusBadge}
-                    formatDate={formatDate}
-                  />
-                ))}
-              </div>
-            )}
-          </TabsContent>
-
-          <TabsContent value="in-progress">
-            {isLoading ? (
-              <SessionSkeleton />
-            ) : inProgressSessions.length === 0 ? (
-              <EmptyState
-                onCreateNew={() => router.push("/new-session")}
-                searchTerm={searchTerm}
-                type="in-progress"
-              />
-            ) : (
-              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {inProgressSessions.map((session) => (
-                  <SessionCard
-                    key={session.id}
-                    session={session}
-                    onContinue={handleContinueSession}
-                    onViewResults={handleViewResults}
-                    getStatusBadge={getStatusBadge}
-                    formatDate={formatDate}
-                  />
-                ))}
-              </div>
-            )}
-          </TabsContent>
-
-          <TabsContent value="not-started">
-            {isLoading ? (
-              <SessionSkeleton />
-            ) : notStartedSessions.length === 0 ? (
-              <EmptyState
-                onCreateNew={() => router.push("/new-session")}
-                searchTerm={searchTerm}
-                type="not-started"
-              />
-            ) : (
-              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {notStartedSessions.map((session) => (
-                  <SessionCard
-                    key={session.id}
-                    session={session}
-                    onContinue={handleContinueSession}
-                    onViewResults={handleViewResults}
-                    getStatusBadge={getStatusBadge}
-                    formatDate={formatDate}
-                  />
-                ))}
-              </div>
-            )}
-          </TabsContent>
-        </Tabs>
-      </div>
-    </div>
-  );
-}
-
-type SessionCardProps = {
-  session: InterviewSession;
-  onContinue: (id: string) => void;
-  onViewResults: (id: string) => void;
-  getStatusBadge: (status: InterviewSession["status"]) => React.ReactNode;
-  formatDate: (date: Date) => string;
-};
-
-function SessionCard({
-  session,
-  onContinue,
-  onViewResults,
-  getStatusBadge,
-  formatDate,
-}: SessionCardProps) {
-  const { deleteSession } = useInterviewStore();
-  const [isDeleting, setIsDeleting] = useState(false);
-
-  const handleDelete = async () => {
-    try {
-      setIsDeleting(true);
-      await deleteSession(session.id);
+      await deleteSession(session._id);
       toast.success("Session deleted successfully");
     } catch (error) {
-      toast.error("Error", {
-        description: "Failed to delete session. Please try again.",
-      });
-    } finally {
-      setIsDeleting(false);
+      console.error("Error deleting session:", error);
+      toast.error("Failed to delete session");
     }
   };
 
+  const filteredSessions = sessions.filter((session: InterviewSession) => {
+    if (activeTab === "all") return true;
+    return session.status === activeTab;
+  });
+
   return (
-    <Card className="relative group">
-      <CardHeader>
-        <div className="flex items-start justify-between">
-          <div>
-            <CardTitle className="text-lg">{session.jobTitle}</CardTitle>
-            {session.companyName && (
-              <CardDescription className="flex items-center gap-1">
-                <Building className="h-4 w-4" />
-                {session.companyName}
-              </CardDescription>
-            )}
-          </div>
-          <div className="flex items-center gap-2">
-            {getStatusBadge(session.status)}
-            <Button
-              variant="ghost"
-              size="icon"
-              className="opacity-0 group-hover:opacity-100 transition-opacity"
-              onClick={handleDelete}
-              disabled={isDeleting}
-            >
-              <Trash2 className="h-4 w-4 text-destructive" />
-            </Button>
-          </div>
+    <div className="container mx-auto py-8">
+      <div className="flex justify-between items-center mb-8">
+        <h1 className="text-2xl font-bold">Dashboard</h1>
+        <div className="flex gap-2">
+          <NewSessionDialog />
         </div>
-      </CardHeader>
-      <CardContent>
-        <p className="text-sm text-muted-foreground line-clamp-2">
-          {session.jobDescription}
-        </p>
-        <div className="mt-4 flex items-center gap-2 text-sm text-muted-foreground">
-          <Clock className="h-4 w-4" />
-          {formatDate(session.createdAt)}
-        </div>
-      </CardContent>
-      <CardFooter className="flex justify-end gap-2">
-        {session.status === "not-started" && (
-          <Button onClick={() => onContinue(session.id)}>
-            Start Interview
-            <ArrowRight className="ml-2 h-4 w-4" />
-          </Button>
-        )}
-        {session.status === "in-progress" && (
-          <Button onClick={() => onContinue(session.id)}>
-            Continue Interview
-            <ArrowRight className="ml-2 h-4 w-4" />
-          </Button>
-        )}
-        {session.status === "completed" && (
-          <Button onClick={() => onViewResults(session.id)}>
-            View Results
-            <BarChart className="ml-2 h-4 w-4" />
-          </Button>
-        )}
-      </CardFooter>
-    </Card>
-  );
-}
-
-function SessionSkeleton() {
-  return (
-    <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-      {Array.from({ length: 6 }).map((_, i) => (
-        <Card key={i} className="flex flex-col h-full">
-          <CardHeader className="pb-2">
-            <div className="flex justify-between items-start">
-              <Skeleton className="h-6 w-3/4" />
-              <Skeleton className="h-5 w-20" />
-            </div>
-            <div className="space-y-2 mt-2">
-              <Skeleton className="h-4 w-1/2" />
-              <Skeleton className="h-4 w-1/3" />
-            </div>
-          </CardHeader>
-          <CardContent className="flex-grow py-2">
-            <div className="space-y-2">
-              <Skeleton className="h-4 w-full" />
-              <Skeleton className="h-4 w-full" />
-            </div>
-          </CardContent>
-          <CardFooter className="pt-2">
-            <Skeleton className="h-10 w-full" />
-          </CardFooter>
-        </Card>
-      ))}
-    </div>
-  );
-}
-
-type EmptyStateProps = {
-  onCreateNew: () => void;
-  searchTerm: string;
-  type?: "completed" | "in-progress" | "not-started";
-};
-
-function EmptyState({ onCreateNew, searchTerm, type }: EmptyStateProps) {
-  let message = "No interview sessions yet";
-  let description = "Create your first interview session to start practicing";
-  let icon = <BarChart className="h-12 w-12 text-muted-foreground mb-2" />;
-
-  if (searchTerm) {
-    message = "No matching sessions found";
-    description = `No sessions match your search for "${searchTerm}"`;
-    icon = <Search className="h-12 w-12 text-muted-foreground mb-2" />;
-  } else if (type) {
-    switch (type) {
-      case "completed":
-        message = "No completed interviews";
-        description = "Complete an interview to see results here";
-        icon = <CheckCircle className="h-12 w-12 text-muted-foreground mb-2" />;
-        break;
-      case "in-progress":
-        message = "No interviews in progress";
-        description = "Start an interview to see it here";
-        icon = <AlertCircle className="h-12 w-12 text-muted-foreground mb-2" />;
-        break;
-      case "not-started":
-        message = "No pending interviews";
-        description = "Create a new interview session to get started";
-        icon = <Hourglass className="h-12 w-12 text-muted-foreground mb-2" />;
-        break;
-    }
-  }
-
-  return (
-    <div className="text-center py-12 bg-white dark:bg-zinc-800 rounded-lg shadow">
-      <div className="flex flex-col items-center">
-        {icon}
-        <h2 className="text-xl font-semibold mb-2">{message}</h2>
-        <p className="text-zinc-600 dark:text-zinc-300 mb-6">{description}</p>
       </div>
+
+      <div className="flex gap-4 mb-8">
+        <Button
+          variant={activeTab === "all" ? "default" : "outline"}
+          onClick={() => setActiveTab("all")}
+        >
+          All Sessions
+        </Button>
+        <Button
+          variant={activeTab === "not-started" ? "default" : "outline"}
+          onClick={() => setActiveTab("not-started")}
+        >
+          Not Started
+        </Button>
+        <Button
+          variant={activeTab === "in-progress" ? "default" : "outline"}
+          onClick={() => setActiveTab("in-progress")}
+        >
+          In Progress
+        </Button>
+        <Button
+          variant={activeTab === "completed" ? "default" : "outline"}
+          onClick={() => setActiveTab("completed")}
+        >
+          Completed
+        </Button>
+      </div>
+
+      {isLoading ? (
+        <div>Loading...</div>
+      ) : error ? (
+        <div className="text-red-500">{error}</div>
+      ) : filteredSessions.length === 0 ? (
+        <div>No sessions found</div>
+      ) : (
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {filteredSessions.map((session: InterviewSession) => (
+            <div
+              key={session._id}
+              className="p-4 border rounded-lg hover:shadow-md transition-shadow"
+            >
+              <h3 className="font-semibold">{session.jobTitle}</h3>
+              <p className="text-sm text-gray-600">{session.companyName}</p>
+              <div className="mt-2 flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleSessionClick(session)}
+                >
+                  View
+                </Button>
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={() => handleSessionDelete(session)}
+                >
+                  Delete
+                </Button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
-}
+} 

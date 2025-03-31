@@ -19,7 +19,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
-import { useInterviewStore } from "@/lib/store";
+import { useStore } from "@/lib/store";
 
 const templates = [
   {
@@ -44,7 +44,7 @@ const templates = [
 
 export function NewSessionDialog() {
   const router = useRouter();
-  const { createSession } = useInterviewStore();
+  const { createSession } = useStore();
 
   const [open, setOpen] = React.useState(false);
   const [jobTitle, setJobTitle] = React.useState("");
@@ -158,7 +158,7 @@ export function NewSessionDialog() {
                     placeholder="Enter the job description..."
                     value={jobDescription}
                     onChange={(e) => setJobDescription(e.target.value)}
-                    className="min-h-[100px]"
+                    className="min-h-[100px] max-h-[300px] overflow-y-auto resize-none"
                     required
                   />
                 </div>

@@ -1,121 +1,122 @@
-import type { ObjectId } from "mongodb";
-import clientPromise from "../mongodb";
+import type { InterviewSession, Question } from "../types";
 
-export type Question = {
-  id: string;
-  question: string;
-  answer?: string;
-};
+// Local storage functions
+const STORAGE_KEY = "interview-sessions";
 
-export type InterviewSession = {
-  _id?: ObjectId;
-  id: string;
-  userId: string;
-  jobTitle: string;
-  jobDescription: string;
-  companyName: string;
-  questions: Question[];
-  status: "not-started" | "in-progress" | "completed";
-  score?: number;
-  feedback?: string;
-  createdAt: Date;
-  completedAt?: Date;
-};
-
-export async function getSessionsCollection() {
-  const client = await (await clientPromise)();
-  if (!client) {
-    throw new Error("Failed to connect to MongoDB");
-  }
-  const db = client.db("interview-prep");
-  return db.collection<InterviewSession>("sessions");
+export function getAllSessions(userId: string): InterviewSession[] {
+  if (typeof window === "undefined") return [];
+  
+  const sessions = localStorage.getItem(STORAGE_KEY);
+  if (!sessions) return [];
+  
+  return JSON.parse(sessions).filter((session: InterviewSession) => session.userId === userId);
 }
 
-export async function getAllSessions(userId: string) {
-  const collection = await getSessionsCollection();
-  const sessions = await collection
-    .find({ userId })
-    .sort({ createdAt: -1 })
-    .toArray();
-  return sessions.map((session: InterviewSession) => ({
-    ...session,
-    id: session.id.toString(),
-  }));
+export function getSessionById(id: string): InterviewSession | null {
+  if (typeof window === "undefined") return null;
+  
+  const sessions = localStorage.getItem(STORAGE_KEY);
+  if (!sessions) return null;
+  
+  return JSON.parse(sessions).find((session: InterviewSession) => session._id === id) || null;
 }
 
-export async function getSessionById(id: string) {
-  const collection = await getSessionsCollection();
-  const session = await collection.findOne({ id });
-  if (!session) return null;
-  return {
+export function createSession(session: Omit<InterviewSession, "_id">): InterviewSession {
+  if (typeof window === "undefined") throw new Error("Cannot create session on server");
+  
+  const sessions = localStorage.getItem(STORAGE_KEY);
+  const existingSessions = sessions ? JSON.parse(sessions) : [];
+  
+  const newSession: InterviewSession = {
     ...session,
-    id: session.id.toString(),
+    _id: crypto.randomUUID(),
   };
+  
+  localStorage.setItem(STORAGE_KEY, JSON.stringify([...existingSessions, newSession]));
+  return newSession;
 }
 
-export async function createSession(session: Omit<InterviewSession, "_id">) {
-  const collection = await getSessionsCollection();
-  const result = await collection.insertOne(session);
-  return {
-    ...session,
-    _id: result.insertedId,
+export function updateSession(id: string, update: Partial<InterviewSession>): InterviewSession | null {
+  if (typeof window === "undefined") return null;
+  
+  const sessions = localStorage.getItem(STORAGE_KEY);
+  if (!sessions) return null;
+  
+  const existingSessions = JSON.parse(sessions);
+  const sessionIndex = existingSessions.findIndex((s: InterviewSession) => s._id === id);
+  
+  if (sessionIndex === -1) return null;
+  
+  const updatedSession = {
+    ...existingSessions[sessionIndex],
+    ...update,
   };
+  
+  existingSessions[sessionIndex] = updatedSession;
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(existingSessions));
+  
+  return updatedSession;
 }
 
-export async function updateSession(
-  id: string,
-  update: Partial<InterviewSession>
-) {
-  const collection = await getSessionsCollection();
-  await collection.updateOne({ id }, { $set: update });
-  return getSessionById(id);
-}
-
-export async function addQuestion(sessionId: string, question: string) {
-  const collection = await getSessionsCollection();
+export function addQuestion(sessionId: string, question: string): string {
+  if (typeof window === "undefined") throw new Error("Cannot add question on server");
+  
   const questionId = Date.now().toString();
-  await collection.updateOne(
-    { id: sessionId },
-    { $push: { questions: { id: questionId, question } } }
-  );
+  const session = getSessionById(sessionId);
+  
+  if (!session) throw new Error("Session not found");
+  
+  const updatedSession = {
+    ...session,
+    questions: [...session.questions, { id: questionId, question }],
+  };
+  
+  updateSession(sessionId, updatedSession);
   return questionId;
 }
 
-export async function addAnswer(
-  sessionId: string,
-  questionId: string,
-  answer: string
-) {
-  const collection = await getSessionsCollection();
-  await collection.updateOne(
-    { id: sessionId, "questions.id": questionId },
-    { $set: { "questions.$.answer": answer } }
-  );
+export function addAnswer(sessionId: string, questionId: string, answer: string): void {
+  if (typeof window === "undefined") return;
+  
+  const session = getSessionById(sessionId);
+  if (!session) return;
+  
+  const updatedSession = {
+    ...session,
+    questions: session.questions.map((q) =>
+      q.id === questionId ? { ...q, answer } : q
+    ),
+  };
+  
+  updateSession(sessionId, updatedSession);
 }
 
-export async function completeSession(sessionId: string) {
-  const collection = await getSessionsCollection();
-  await collection.updateOne(
-    { id: sessionId },
-    {
-      $set: {
-        status: "completed",
-        completedAt: new Date(),
-      },
-    }
-  );
+export function completeSession(sessionId: string): void {
+  if (typeof window === "undefined") return;
+  
+  const session = getSessionById(sessionId);
+  if (!session) return;
+  
+  updateSession(sessionId, {
+    status: "completed",
+    completedAt: new Date(),
+  });
 }
 
-export async function deleteSession(sessionId: string) {
-  const collection = await getSessionsCollection();
-  await collection.deleteOne({ id: sessionId });
+export function deleteSession(sessionId: string): void {
+  if (typeof window === "undefined") return;
+  
+  const sessions = localStorage.getItem(STORAGE_KEY);
+  if (!sessions) return;
+  
+  const existingSessions = JSON.parse(sessions);
+  const updatedSessions = existingSessions.filter((s: InterviewSession) => s._id !== sessionId);
+  
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedSessions));
 }
 
-export async function setScore(
-  sessionId: string,
-  score: number,
-  feedback: string
-) {
-  const collection = await getSessionsCollection();
-  await collection.updateOne({ id: sessionId }, { $set: { score, feedback } });
-}
+export function setScore(sessionId: string, score: number, feedback: string): void {
+  if (typeof window === "undefined") return;
+  
+  updateSession(sessionId, { score, feedback });
+} 

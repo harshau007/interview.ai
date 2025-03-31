@@ -11,14 +11,13 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import { getClientConfig } from "@/lib/client-config";
-import { useInterviewStore } from "@/lib/store";
-import { ElevenLabsClient } from "elevenlabs";
 import { Info, Mic, MicOff, PhoneOff, Video, VideoOff } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useRouter } from "next/navigation";
-import { use, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, use } from "react";
 import { toast } from "sonner";
+import { useStore } from "@/lib/store";
+import { ElevenLabsClient } from "@/lib/elevenlabs";
 
 type InterviewerState = {
   name: string;
@@ -57,8 +56,9 @@ export default function InterviewPage({
     updateSession,
     completeSession,
     setScore,
-    getUserProfile,
-  } = useInterviewStore();
+    userProfile,
+  } = useStore();
+  const resolvedParams = use(params);
   const { theme } = useTheme();
   const [interviewer, setInterviewer] = useState<InterviewerState>({
     name: "AI Interviewer",
@@ -90,7 +90,6 @@ export default function InterviewPage({
   const audioChunksRef = useRef<Blob[]>([]);
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
-  const resolvedParams = use(params);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const elevenlabsRef = useRef<ElevenLabsClient | null>(null);
@@ -102,7 +101,6 @@ export default function InterviewPage({
 
   const getNextQuestion = async (audioBlob: Blob) => {
     const session = getCurrentSession();
-    const userProfile = getUserProfile();
     if (!session) return;
 
     try {
@@ -182,7 +180,7 @@ export default function InterviewPage({
         await completeInterviewAndScore();
       } else {
         // Add the next question
-        addQuestion(session.id, data.nextQuestion);
+        addQuestion(session._id, data.nextQuestion);
 
         // Move to the next question
         setInterviewState((prev) => ({
@@ -200,7 +198,6 @@ export default function InterviewPage({
 
   const completeInterviewAndScore = async () => {
     const session = getCurrentSession();
-    const userProfile = getUserProfile();
     if (!session) return;
 
     try {
@@ -224,16 +221,16 @@ export default function InterviewPage({
       const data = await response.json();
 
       // Update the session with the score and feedback
-      setScore(session.id, data.score, data.feedback);
+      setScore(session._id, data.score, data.feedback);
 
       // Complete the session
-      completeSession(session.id);
+      completeSession(session._id);
 
       // Move to completed stage
       setInterviewState((prev) => ({ ...prev, stage: "completed" }));
 
       // Redirect to results page
-      router.push(`/results/${session.id}`);
+      router.push(`/results/${session._id}`);
     } catch (error) {
       console.error("Error completing interview:", error);
       toast.error("Error", {
@@ -305,10 +302,9 @@ export default function InterviewPage({
   // Initialize ElevenLabs client
   useEffect(() => {
     const initElevenLabs = async () => {
-      const config = getClientConfig();
-      if (config?.elevenLabsApiKey) {
+      if (process.env.NEXT_PUBLIC_ELEVENLABS_API_KEY) {
         elevenlabsRef.current = new ElevenLabsClient({
-          apiKey: process.env.ELEVENLABS_API_KEY,
+          apiKey: process.env.NEXT_PUBLIC_ELEVENLABS_API_KEY,
         });
       }
     };
@@ -405,7 +401,7 @@ export default function InterviewPage({
 
     // Update session status to in-progress
     if (session.status === "not-started") {
-      updateSession({ id: session.id, status: "in-progress" });
+      updateSession({ ...session, status: "in-progress" });
     }
 
     // Start the interview
@@ -442,7 +438,7 @@ export default function InterviewPage({
       }));
 
       // Add the first question
-      addQuestion(session.id, "Could you please introduce yourself?");
+      addQuestion(session._id, "Could you please introduce yourself?");
 
       await speak(greeting);
     } catch (error) {
@@ -533,7 +529,7 @@ export default function InterviewPage({
       const currentQuestion = session.questions[interviewState.questionIndex];
       if (currentQuestion) {
         // We'll update this with the transcript from Gemini later
-        addAnswer(session.id, currentQuestion.id, "Processing...");
+        addAnswer(session._id, currentQuestion.id, "Processing...");
       }
 
       // Get AI response based on the audio
@@ -558,7 +554,6 @@ export default function InterviewPage({
   };
 
   const session = getCurrentSession();
-  const userProfile = getUserProfile();
 
   return (
     <div className="h-screen overflow-hidden bg-background">

@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { LayoutDashboard, Settings, Menu, X, ChevronRight } from "lucide-react"
-import { useInterviewStore } from "@/lib/store"
+import { useStore } from "@/lib/store"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import {
   Sidebar,
@@ -28,7 +28,7 @@ export function AppSidebar({ className }: SidebarProps) {
   const pathname = usePathname()
   const [isMobileOpen, setIsMobileOpen] = useState(false)
   const [isCollapsed, setIsCollapsed] = useState(false)
-  const { userProfile } = useInterviewStore()
+  const { userProfile } = useStore()
 
   // Close mobile sidebar when path changes
   useEffect(() => {

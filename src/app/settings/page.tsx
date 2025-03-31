@@ -18,8 +18,8 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { type UserProfile } from "@/lib/models/user";
-import { useInterviewStore } from "@/lib/store";
+import { useStore } from "@/lib/store";
+import type { UserProfile, Experience, Education, Project, Certification } from "@/lib/types";
 import {
   Dialog,
   DialogContent,
@@ -28,13 +28,15 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { Badge } from "@/components/ui/badge";
+import { X } from "lucide-react";
 
 export default function SettingsPage() {
   const router = useRouter();
-  const { userProfile, updateUserProfile, fetchUserProfile } = useInterviewStore();
+  const { userProfile, updateUserProfile } = useStore();
   const [isSubmitting, setIsSubmitting] = React.useState(false);
-  const [formData, setFormData] = React.useState<UserProfile>({
-    id: "", // This will be set when saving
+  const [formData, setFormData] = React.useState<Partial<UserProfile>>({
+    _id: "", // This will be set when saving
     name: "",
     email: "",
     skills: [],
@@ -42,63 +44,51 @@ export default function SettingsPage() {
     education: [],
     projects: [],
     certifications: [],
+    createdAt: new Date(),
   });
   const [isLoading, setIsLoading] = React.useState(true);
   const isInitialMount = React.useRef(true);
 
   React.useEffect(() => {
-    const loadProfile = async () => {
-      try {
-        await fetchUserProfile();
-        if (userProfile) {
-          setFormData(userProfile);
-        }
-      } catch (error) {
-        console.error("Error loading profile:", error);
-        // Don't show error toast, just continue with empty form
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    if (isInitialMount.current) {
-      loadProfile();
+    if (isInitialMount.current && userProfile) {
+      setFormData(userProfile);
+      setIsLoading(false);
       isInitialMount.current = false;
     }
-  }, [fetchUserProfile, userProfile]);
+  }, [userProfile]);
 
   const handleInputChange = (
     field: keyof UserProfile,
-    value: string | string[] | boolean
+    value: string | string[] | boolean | Date
   ) => {
     if (!formData) return;
     setFormData({ ...formData, [field]: value });
   };
 
-  const handleExperienceChange = (index: number, field: string, value: string | boolean) => {
+  const handleExperienceChange = (index: number, field: keyof Experience, value: string | boolean) => {
     if (!formData) return;
-    const newExperiences = [...formData.experience];
+    const newExperiences = [...(formData.experience || [])];
     newExperiences[index] = { ...newExperiences[index], [field]: value };
     setFormData({ ...formData, experience: newExperiences });
   };
 
-  const handleEducationChange = (index: number, field: string, value: string | boolean) => {
+  const handleEducationChange = (index: number, field: keyof Education, value: string) => {
     if (!formData) return;
-    const newEducation = [...formData.education];
+    const newEducation = [...(formData.education || [])];
     newEducation[index] = { ...newEducation[index], [field]: value };
     setFormData({ ...formData, education: newEducation });
   };
 
-  const handleProjectChange = (index: number, field: string, value: string | string[]) => {
+  const handleProjectChange = (index: number, field: keyof Project, value: string | string[]) => {
     if (!formData) return;
-    const newProjects = [...formData.projects];
+    const newProjects = [...(formData.projects || [])];
     newProjects[index] = { ...newProjects[index], [field]: value };
     setFormData({ ...formData, projects: newProjects });
   };
 
-  const handleCertificationChange = (index: number, field: string, value: string) => {
+  const handleCertificationChange = (index: number, field: keyof Certification, value: string) => {
     if (!formData) return;
-    const newCertifications = [...formData.certifications];
+    const newCertifications = [...(formData.certifications || [])];
     newCertifications[index] = { ...newCertifications[index], [field]: value };
     setFormData({ ...formData, certifications: newCertifications });
   };
@@ -108,16 +98,16 @@ export default function SettingsPage() {
     setFormData({
       ...formData,
       experience: [
-        ...formData.experience,
+        ...(formData.experience || []),
         {
           id: Date.now().toString(),
-      title: "",
-      company: "",
-      location: "",
-      startDate: "",
-      endDate: "",
-      current: false,
-      description: "",
+          title: "",
+          company: "",
+          location: "",
+          startDate: "",
+          endDate: "",
+          current: false,
+          description: "",
         },
       ],
     });
@@ -128,16 +118,15 @@ export default function SettingsPage() {
     setFormData({
       ...formData,
       education: [
-        ...formData.education,
+        ...(formData.education || []),
         {
           id: Date.now().toString(),
-      degree: "",
-      institution: "",
-      location: "",
-      startDate: "",
-      endDate: "",
-      current: false,
-      description: "",
+          school: "",
+          degree: "",
+          field: "",
+          startDate: "",
+          endDate: "",
+          description: "",
         },
       ],
     });
@@ -148,13 +137,15 @@ export default function SettingsPage() {
     setFormData({
       ...formData,
       projects: [
-        ...formData.projects,
+        ...(formData.projects || []),
         {
           id: Date.now().toString(),
-      title: "",
-      description: "",
-      technologies: [],
-      url: "",
+          name: "",
+          description: "",
+          technologies: [],
+          startDate: "",
+          endDate: "",
+          url: "",
         },
       ],
     });
@@ -165,7 +156,7 @@ export default function SettingsPage() {
     setFormData({
       ...formData,
       certifications: [
-        ...formData.certifications,
+        ...(formData.certifications || []),
         {
           id: Date.now().toString(),
           name: "",
@@ -181,7 +172,7 @@ export default function SettingsPage() {
     if (!formData) return;
     setFormData({
       ...formData,
-      experience: formData.experience.filter((_, i) => i !== index),
+      experience: (formData.experience || []).filter((_: Experience, i: number) => i !== index),
     });
   };
 
@@ -189,7 +180,7 @@ export default function SettingsPage() {
     if (!formData) return;
     setFormData({
       ...formData,
-      education: formData.education.filter((_, i) => i !== index),
+      education: (formData.education || []).filter((_: Education, i: number) => i !== index),
     });
   };
 
@@ -197,7 +188,7 @@ export default function SettingsPage() {
     if (!formData) return;
     setFormData({
       ...formData,
-      projects: formData.projects.filter((_, i) => i !== index),
+      projects: (formData.projects || []).filter((_: Project, i: number) => i !== index),
     });
   };
 
@@ -205,7 +196,7 @@ export default function SettingsPage() {
     if (!formData) return;
     setFormData({
       ...formData,
-      certifications: formData.certifications.filter((_, i) => i !== index),
+      certifications: (formData.certifications || []).filter((_: Certification, i: number) => i !== index),
     });
   };
 
@@ -217,27 +208,13 @@ export default function SettingsPage() {
       // Generate a unique ID if not present
       const profileData = {
         ...formData,
-        id: formData.id || Date.now().toString(),
+        _id: formData._id || Date.now().toString(),
+        updatedAt: new Date(),
       };
 
-      // First update the store
+      // Update the store
       await updateUserProfile(profileData);
       
-      // Then save to MongoDB
-      const response = await fetch("/api/users", {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(profileData),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.message || "Failed to save changes");
-      }
-
-      const result = await response.json();
       toast.success("Profile updated successfully");
       router.push("/dashboard");
     } catch (error) {
@@ -260,395 +237,466 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="container mx-auto p-4">
-        <div className="flex items-center justify-between mb-6">
-          <h1 className="text-2xl font-bold">Settings</h1>
+    <div className="container mx-auto p-4">
+      <div className="flex items-center gap-4 mb-6">
+        <h1 className="text-2xl font-bold">Profile Settings</h1>
+      </div>
+
+      <div className="grid gap-4">
+        {/* Basic Information */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Basic Information</CardTitle>
+            <CardDescription>
+              Your personal information and contact details
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label>Name</Label>
+              <Input
+                value={formData.name || ""}
+                onChange={(e) => handleInputChange("name", e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Email</Label>
+              <Input
+                value={formData.email || ""}
+                onChange={(e) => handleInputChange("email", e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Phone</Label>
+              <Input
+                value={formData.phone || ""}
+                onChange={(e) => handleInputChange("phone", e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Location</Label>
+              <Input
+                value={formData.location || ""}
+                onChange={(e) => handleInputChange("location", e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Summary</Label>
+              <Textarea
+                value={formData.summary || ""}
+                onChange={(e) => handleInputChange("summary", e.target.value)}
+              />
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Skills */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Skills</CardTitle>
+            <CardDescription>Your technical and professional skills</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div className="flex gap-2">
+                <Input
+                  placeholder="Add a skill"
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      const input = e.target as HTMLInputElement;
+                      const skill = input.value.trim();
+                      if (skill) {
+                        handleInputChange("skills", [...(formData.skills || []), skill]);
+                        input.value = "";
+                      }
+                    }
+                  }}
+                />
+                <Button
+                  onClick={() => {
+                    const input = document.querySelector('input[placeholder="Add a skill"]') as HTMLInputElement;
+                    if (input) {
+                      const skill = input.value.trim();
+                      if (skill) {
+                        handleInputChange("skills", [...(formData.skills || []), skill]);
+                        input.value = "";
+                      }
+                    }
+                  }}
+                >
+                  <Plus className="h-4 w-4" />
+                </Button>
               </div>
-
-        <div className="space-y-8">
-              <Card>
-                <CardHeader>
-              <CardTitle>Profile Settings</CardTitle>
-              <CardDescription>Update your profile information</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                    <div className="space-y-2">
-                <Label htmlFor="name">Name</Label>
-                      <Input
-                        id="name"
-                  value={formData.name}
-                  onChange={(e) => handleInputChange("name", e.target.value)}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="email">Email</Label>
-                      <Input
-                        id="email"
-                        type="email"
-                  value={formData.email}
-                  onChange={(e) => handleInputChange("email", e.target.value)}
-                    />
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle>Skills</CardTitle>
-              <CardDescription>Add your technical skills</CardDescription>
-                </CardHeader>
-                <CardContent>
               <div className="flex flex-wrap gap-2">
-                {formData.skills.map((skill, index) => (
-                  <div key={index} className="flex items-center gap-2">
-                    <span className="px-2 py-1 bg-primary/10 rounded-md">{skill}</span>
-                    <Button
-                      variant="ghost"
-                      size="sm"
+                {(formData.skills || []).map((skill, index) => (
+                  <Badge key={index} variant="secondary">
+                    {skill}
+                    <button
+                      className="ml-1 hover:text-destructive"
                       onClick={() => {
-                        const newSkills = formData.skills.filter((_, i) => i !== index);
+                        const newSkills = [...(formData.skills || [])];
+                        newSkills.splice(index, 1);
                         handleInputChange("skills", newSkills);
                       }}
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </Badge>
+                ))}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Experience */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Experience</CardTitle>
+            <CardDescription>Your work experience</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-6">
+              {(formData.experience || []).map((exp, index) => (
+                <div key={exp.id} className="space-y-4 p-4 border rounded-lg">
+                  <div className="flex justify-between items-start">
+                    <h3 className="font-medium">Experience {index + 1}</h3>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => removeExperience(index)}
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>
                   </div>
-                ))}
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    const newSkill = prompt("Enter a new skill");
-                    if (newSkill) {
-                      handleInputChange("skills", [...formData.skills, newSkill]);
-                    }
-                  }}
-                >
-                  <Plus className="h-4 w-4 mr-2" />
-                  Add Skill
-                </Button>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-            <CardHeader>
-              <CardTitle>Experience</CardTitle>
-              <CardDescription>Add your work experience</CardDescription>
-                </CardHeader>
-            <CardContent className="space-y-4">
-              {formData.experience.map((exp, index) => (
-                <div key={exp.id} className="space-y-4 p-4 border rounded-lg">
-                      <div className="flex justify-between items-start">
-                    <h3 className="font-medium">Experience {index + 1}</h3>
-                          <Button
-                            variant="ghost"
-                      size="sm"
-                      onClick={() => removeExperience(index)}
-                          >
-                      <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-2">
+                  <div className="grid gap-4">
+                    <div className="space-y-2">
                       <Label>Title</Label>
-                          <Input
+                      <Input
                         value={exp.title}
-                        onChange={(e) => handleExperienceChange(index, "title", e.target.value)}
-                          />
-                        </div>
-                        <div className="space-y-2">
-                      <Label>Company</Label>
-                          <Input
-                        value={exp.company}
-                        onChange={(e) => handleExperienceChange(index, "company", e.target.value)}
-                          />
-                        </div>
-                      <div className="space-y-2">
-                      <Label>Location</Label>
-                        <Input
-                        value={exp.location}
-                        onChange={(e) => handleExperienceChange(index, "location", e.target.value)}
-                        />
-                      </div>
-                        <div className="space-y-2">
-                      <Label>Start Date</Label>
-                          <Input
-                        type="date"
-                        value={exp.startDate}
-                        onChange={(e) => handleExperienceChange(index, "startDate", e.target.value)}
-                          />
-                        </div>
-                        <div className="space-y-2">
-                      <Label>End Date</Label>
-                            <Input
-                        type="date"
-                        value={exp.endDate}
-                        onChange={(e) => handleExperienceChange(index, "endDate", e.target.value)}
-                        disabled={exp.current}
+                        onChange={(e) =>
+                          handleExperienceChange(index, "title", e.target.value)
+                        }
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label>Current Position</Label>
-                      <div className="flex items-center space-x-2">
-                              <input
-                                type="checkbox"
-                          checked={exp.current}
-                          onChange={(e) => handleExperienceChange(index, "current", e.target.checked)}
-                        />
-                        <span>I currently work here</span>
-                            </div>
-                          </div>
-                        </div>
+                      <Label>Company</Label>
+                      <Input
+                        value={exp.company}
+                        onChange={(e) =>
+                          handleExperienceChange(index, "company", e.target.value)
+                        }
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Location</Label>
+                      <Input
+                        value={exp.location}
+                        onChange={(e) =>
+                          handleExperienceChange(index, "location", e.target.value)
+                        }
+                      />
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-2">
-                    <Label>Description</Label>
-                        <Textarea
-                      value={exp.description}
-                      onChange={(e) => handleExperienceChange(index, "description", e.target.value)}
+                        <Label>Start Date</Label>
+                        <Input
+                          type="date"
+                          value={exp.startDate}
+                          onChange={(e) =>
+                            handleExperienceChange(index, "startDate", e.target.value)
+                          }
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>End Date</Label>
+                        <Input
+                          type="date"
+                          value={exp.endDate}
+                          onChange={(e) =>
+                            handleExperienceChange(index, "endDate", e.target.value)
+                          }
                         />
                       </div>
                     </div>
+                    <div className="space-y-2">
+                      <Label>Description</Label>
+                      <Textarea
+                        value={exp.description}
+                        onChange={(e) =>
+                          handleExperienceChange(index, "description", e.target.value)
+                        }
+                      />
+                    </div>
+                  </div>
+                </div>
               ))}
               <Button onClick={addExperience}>
                 <Plus className="h-4 w-4 mr-2" />
                 Add Experience
-                      </Button>
-            </CardContent>
-          </Card>
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
 
-              <Card>
-            <CardHeader>
-                    <CardTitle>Education</CardTitle>
-              <CardDescription>Add your educational background</CardDescription>
-                </CardHeader>
-            <CardContent className="space-y-4">
-              {formData.education.map((edu, index) => (
+        {/* Education */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Education</CardTitle>
+            <CardDescription>Your educational background</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-6">
+              {(formData.education || []).map((edu, index) => (
                 <div key={edu.id} className="space-y-4 p-4 border rounded-lg">
-                      <div className="flex justify-between items-start">
+                  <div className="flex justify-between items-start">
                     <h3 className="font-medium">Education {index + 1}</h3>
-                          <Button
-                            variant="ghost"
-                      size="sm"
+                    <Button
+                      variant="ghost"
+                      size="icon"
                       onClick={() => removeEducation(index)}
-                          >
+                    >
                       <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                      <Label>Degree</Label>
-                          <Input
-                        value={edu.degree}
-                        onChange={(e) => handleEducationChange(index, "degree", e.target.value)}
-                          />
-                        </div>
-                        <div className="space-y-2">
-                      <Label>Institution</Label>
-                          <Input
-                        value={edu.institution}
-                        onChange={(e) => handleEducationChange(index, "institution", e.target.value)}
-                          />
-                        </div>
-                      <div className="space-y-2">
-                      <Label>Location</Label>
-                        <Input
-                        value={edu.location}
-                        onChange={(e) => handleEducationChange(index, "location", e.target.value)}
-                        />
-                      </div>
-                        <div className="space-y-2">
-                      <Label>Start Date</Label>
-                          <Input
-                        type="date"
-                        value={edu.startDate}
-                        onChange={(e) => handleEducationChange(index, "startDate", e.target.value)}
-                          />
-                        </div>
-                        <div className="space-y-2">
-                      <Label>End Date</Label>
-                            <Input
-                        type="date"
-                        value={edu.endDate}
-                        onChange={(e) => handleEducationChange(index, "endDate", e.target.value)}
-                        disabled={edu.current}
+                    </Button>
+                  </div>
+                  <div className="grid gap-4">
+                    <div className="space-y-2">
+                      <Label>School</Label>
+                      <Input
+                        value={edu.school}
+                        onChange={(e) =>
+                          handleEducationChange(index, "school", e.target.value)
+                        }
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label>Currently Studying</Label>
-                      <div className="flex items-center space-x-2">
-                              <input
-                                type="checkbox"
-                          checked={edu.current}
-                          onChange={(e) => handleEducationChange(index, "current", e.target.checked)}
-                        />
-                        <span>I am currently studying here</span>
-                            </div>
-                          </div>
-                        </div>
+                      <Label>Degree</Label>
+                      <Input
+                        value={edu.degree}
+                        onChange={(e) =>
+                          handleEducationChange(index, "degree", e.target.value)
+                        }
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Field</Label>
+                      <Input
+                        value={edu.field}
+                        onChange={(e) =>
+                          handleEducationChange(index, "field", e.target.value)
+                        }
+                      />
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-2">
-                    <Label>Description</Label>
-                        <Textarea
-                      value={edu.description}
-                      onChange={(e) => handleEducationChange(index, "description", e.target.value)}
+                        <Label>Start Date</Label>
+                        <Input
+                          type="date"
+                          value={edu.startDate}
+                          onChange={(e) =>
+                            handleEducationChange(index, "startDate", e.target.value)
+                          }
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>End Date</Label>
+                        <Input
+                          type="date"
+                          value={edu.endDate}
+                          onChange={(e) =>
+                            handleEducationChange(index, "endDate", e.target.value)
+                          }
                         />
                       </div>
                     </div>
+                    <div className="space-y-2">
+                      <Label>Description</Label>
+                      <Textarea
+                        value={edu.description}
+                        onChange={(e) =>
+                          handleEducationChange(index, "description", e.target.value)
+                        }
+                      />
+                    </div>
+                  </div>
+                </div>
               ))}
               <Button onClick={addEducation}>
                 <Plus className="h-4 w-4 mr-2" />
                 Add Education
-                      </Button>
-            </CardContent>
-          </Card>
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
 
-              <Card>
-            <CardHeader>
-                    <CardTitle>Projects</CardTitle>
-              <CardDescription>Add your personal projects</CardDescription>
-                </CardHeader>
-            <CardContent className="space-y-4">
-              {formData.projects.map((project, index) => (
+        {/* Projects */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Projects</CardTitle>
+            <CardDescription>Your personal and professional projects</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-6">
+              {(formData.projects || []).map((project, index) => (
                 <div key={project.id} className="space-y-4 p-4 border rounded-lg">
-                      <div className="flex justify-between items-start">
+                  <div className="flex justify-between items-start">
                     <h3 className="font-medium">Project {index + 1}</h3>
                     <Button
                       variant="ghost"
-                      size="sm"
+                      size="icon"
                       onClick={() => removeProject(index)}
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>
-                          </div>
-                  <div className="grid grid-cols-2 gap-4">
+                  </div>
+                  <div className="grid gap-4">
                     <div className="space-y-2">
-                      <Label>Title</Label>
+                      <Label>Name</Label>
                       <Input
-                        value={project.title}
-                        onChange={(e) => handleProjectChange(index, "title", e.target.value)}
+                        value={project.name}
+                        onChange={(e) =>
+                          handleProjectChange(index, "name", e.target.value)
+                        }
                       />
-                        </div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Description</Label>
+                      <Textarea
+                        value={project.description}
+                        onChange={(e) =>
+                          handleProjectChange(index, "description", e.target.value)
+                        }
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Technologies</Label>
+                      <Input
+                        value={project.technologies.join(", ")}
+                        onChange={(e) =>
+                          handleProjectChange(
+                            index,
+                            "technologies",
+                            e.target.value.split(",").map((t) => t.trim())
+                          )
+                        }
+                      />
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label>Start Date</Label>
+                        <Input
+                          type="date"
+                          value={project.startDate}
+                          onChange={(e) =>
+                            handleProjectChange(index, "startDate", e.target.value)
+                          }
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>End Date</Label>
+                        <Input
+                          type="date"
+                          value={project.endDate}
+                          onChange={(e) =>
+                            handleProjectChange(index, "endDate", e.target.value)
+                          }
+                        />
+                      </div>
+                    </div>
                     <div className="space-y-2">
                       <Label>URL</Label>
                       <Input
-                        value={project.url}
-                        onChange={(e) => handleProjectChange(index, "url", e.target.value)}
+                        value={project.url || ""}
+                        onChange={(e) =>
+                          handleProjectChange(index, "url", e.target.value)
+                        }
                       />
                     </div>
                   </div>
-                  <div className="space-y-2">
-                    <Label>Description</Label>
-                    <Textarea
-                      value={project.description}
-                      onChange={(e) => handleProjectChange(index, "description", e.target.value)}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Technologies</Label>
-                    <div className="flex flex-wrap gap-2">
-                      {project.technologies.map((tech, techIndex) => (
-                        <div key={techIndex} className="flex items-center gap-2">
-                          <span className="px-2 py-1 bg-primary/10 rounded-md">{tech}</span>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => {
-                              const newTechs = project.technologies.filter((_, i) => i !== techIndex);
-                              handleProjectChange(index, "technologies", newTechs);
-                            }}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      ))}
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {
-                          const newTech = prompt("Enter a new technology");
-                          if (newTech) {
-                            handleProjectChange(index, "technologies", [...project.technologies, newTech]);
-                          }
-                        }}
-                      >
-                        <Plus className="h-4 w-4 mr-2" />
-                        Add Technology
-                      </Button>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
+                </div>
+              ))}
               <Button onClick={addProject}>
                 <Plus className="h-4 w-4 mr-2" />
                 Add Project
               </Button>
-                </CardContent>
-              </Card>
+            </div>
+          </CardContent>
+        </Card>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Certifications</CardTitle>
-              <CardDescription>Add your certifications</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {formData.certifications.map((cert, index) => (
+        {/* Certifications */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Certifications</CardTitle>
+            <CardDescription>Your professional certifications</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-6">
+              {(formData.certifications || []).map((cert, index) => (
                 <div key={cert.id} className="space-y-4 p-4 border rounded-lg">
                   <div className="flex justify-between items-start">
                     <h3 className="font-medium">Certification {index + 1}</h3>
                     <Button
                       variant="ghost"
-                      size="sm"
+                      size="icon"
                       onClick={() => removeCertification(index)}
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>
                   </div>
-                  <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-2">
+                  <div className="grid gap-4">
+                    <div className="space-y-2">
                       <Label>Name</Label>
-                        <Input
+                      <Input
                         value={cert.name}
-                        onChange={(e) => handleCertificationChange(index, "name", e.target.value)}
-                        />
-                      </div>
-                      <div className="space-y-2">
+                        onChange={(e) =>
+                          handleCertificationChange(index, "name", e.target.value)
+                        }
+                      />
+                    </div>
+                    <div className="space-y-2">
                       <Label>Issuer</Label>
-                        <Input
+                      <Input
                         value={cert.issuer}
-                        onChange={(e) => handleCertificationChange(index, "issuer", e.target.value)}
-                        />
-                      </div>
-                      <div className="space-y-2">
+                        onChange={(e) =>
+                          handleCertificationChange(index, "issuer", e.target.value)
+                        }
+                      />
+                    </div>
+                    <div className="space-y-2">
                       <Label>Date</Label>
                       <Input
                         type="date"
                         value={cert.date}
-                        onChange={(e) => handleCertificationChange(index, "date", e.target.value)}
-                        />
-                      </div>
-                      <div className="space-y-2">
-                      <Label>URL</Label>
-                        <Input
-                        value={cert.url}
-                        onChange={(e) => handleCertificationChange(index, "url", e.target.value)}
-                        />
-                      </div>
+                        onChange={(e) =>
+                          handleCertificationChange(index, "date", e.target.value)
+                        }
+                      />
                     </div>
+                    <div className="space-y-2">
+                      <Label>URL</Label>
+                      <Input
+                        value={cert.url || ""}
+                        onChange={(e) =>
+                          handleCertificationChange(index, "url", e.target.value)
+                        }
+                      />
+                    </div>
+                  </div>
                 </div>
               ))}
               <Button onClick={addCertification}>
                 <Plus className="h-4 w-4 mr-2" />
                 Add Certification
               </Button>
-            </CardContent>
-          </Card>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
 
-          <div className="flex justify-end">
-            <Button onClick={handleSave} disabled={isSubmitting}>
-              {isSubmitting ? "Saving..." : "Save All Changes"}
-                      </Button>
-        </div>
-        </div>
+      <div className="mt-6 flex justify-end">
+        <Button onClick={handleSave} disabled={isSubmitting}>
+          {isSubmitting ? "Saving..." : "Save Changes"}
+        </Button>
       </div>
     </div>
   );
