@@ -144,14 +144,23 @@ export default function InterviewPage({
         currentQuestion: data.nextQuestion,
       }));
 
-      // Speak the response first
+      // Speak the response first and wait for it to complete
       await speak(data.response);
+
+      // Add a delay between response and question
+      await new Promise(resolve => setTimeout(resolve, 1500));
 
       // Only speak the next question if we're not at the end
       const nextQuestionIndex = interviewState.questionIndex + 1;
       if (nextQuestionIndex < interviewState.totalQuestions) {
-        // Add a small delay between response and question
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        // Update interviewer state to show the next question
+        setInterviewer((prev) => ({
+          ...prev,
+          speaking: true,
+          currentQuestion: data.nextQuestion,
+        }));
+
+        // Speak the next question
         await speak(data.nextQuestion);
       }
 

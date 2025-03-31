@@ -1,11 +1,11 @@
-"use client"
-import { Inter } from "next/font/google";
-import "./globals.css";
-import { Toaster } from "sonner";
-import { SidebarProvider, useSidebar } from "@/components/ui/sidebar";
-import { ThemeProvider } from "@/components/theme-provider";
-import { cn } from "@/lib/utils";
+"use client";
 import { AppSidebar } from "@/components/app-sidebar";
+import { ThemeProvider } from "@/components/theme-provider";
+import { SidebarProvider, useSidebar } from "@/components/ui/sidebar";
+import { cn } from "@/lib/utils";
+import { Inter } from "next/font/google";
+import { Toaster } from "sonner";
+import "./globals.css";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -16,12 +16,14 @@ const inter = Inter({ subsets: ["latin"] });
 
 function MainContent({ children }: { children: React.ReactNode }) {
   const { state } = useSidebar();
-  
+
   return (
-    <main className={cn(
-      "flex-1 transition-all duration-300",
-      state === "expanded" ? "lg:pl-[240px]" : "lg:pl-[70px]"
-    )}>
+    <main
+      className={cn(
+        "flex-1 transition-all duration-300",
+        state === "expanded" ? "lg:pl-[240px]" : "lg:pl-[70px]"
+      )}
+    >
       <div className="container mx-auto p-4">
         {/* <SidebarTrigger/> */}
         {children}
@@ -37,6 +39,9 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
+      <head>
+        <title>Interview.ai</title>
+      </head>
       <body className={inter.className}>
         <ThemeProvider
           attribute="class"
@@ -46,9 +51,7 @@ export default function RootLayout({
         >
           <SidebarProvider>
             <AppSidebar />
-            <MainContent>
-              {children}
-            </MainContent>
+            <MainContent>{children}</MainContent>
             <Toaster richColors />
           </SidebarProvider>
         </ThemeProvider>

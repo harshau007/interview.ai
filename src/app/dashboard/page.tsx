@@ -30,6 +30,7 @@ import {
   Plus,
   Search,
   Settings,
+  Trash2,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -49,7 +50,7 @@ import { Suspense } from "react";
 
 export default function Dashboard() {
   const router = useRouter();
-  const { sessions, setCurrentSession, fetchSessions, isLoading, config, updateConfig } =
+  const { sessions, setCurrentSession, fetchSessions, isLoading, config, updateConfig, deleteSession } =
     useInterviewStore();
   const [searchTerm, setSearchTerm] = useState("");
   const [activeTab, setActiveTab] = useState("all");
@@ -410,69 +411,76 @@ function SessionCard({
   getStatusBadge,
   formatDate,
 }: SessionCardProps) {
+  const { deleteSession } = useInterviewStore();
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const handleDelete = async () => {
+    try {
+      setIsDeleting(true);
+      await deleteSession(session.id);
+      toast.success("Session deleted successfully");
+    } catch (error) {
+      toast.error("Error", {
+        description: "Failed to delete session. Please try again.",
+      });
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   return (
-    <Card className="flex flex-col h-full transition-all hover:shadow-md">
-      <CardHeader className="pb-2">
-        <div className="flex justify-between items-start">
-          <CardTitle className="line-clamp-1 text-base">
-            {session.jobTitle}
-          </CardTitle>
-          {getStatusBadge(session.status)}
-        </div>
-        <CardDescription>
-          <div className="flex items-center gap-1 text-xs">
+    <Card className="relative group">
+      <CardHeader>
+        <div className="flex items-start justify-between">
+          <div>
+            <CardTitle className="text-lg">{session.jobTitle}</CardTitle>
             {session.companyName && (
-              <>
-                <Building className="h-3 w-3" />
-                <span>{session.companyName}</span>
-              </>
+              <CardDescription className="flex items-center gap-1">
+                <Building className="h-4 w-4" />
+                {session.companyName}
+              </CardDescription>
             )}
           </div>
-          <div className="flex items-center gap-1 mt-1 text-xs">
-            <Clock className="h-3 w-3" />
-            <span>{formatDate(session.createdAt)}</span>
+          <div className="flex items-center gap-2">
+            {getStatusBadge(session.status)}
+            <Button
+              variant="ghost"
+              size="icon"
+              className="opacity-0 group-hover:opacity-100 transition-opacity"
+              onClick={handleDelete}
+              disabled={isDeleting}
+            >
+              <Trash2 className="h-4 w-4 text-destructive" />
+            </Button>
           </div>
-        </CardDescription>
+        </div>
       </CardHeader>
-
-      <CardContent className="flex-grow py-2">
-        <div className="space-y-2">
-          <p className="text-sm text-zinc-600 dark:text-zinc-300 line-clamp-2">
-            {session.jobDescription}
-          </p>
-
-          {session.status === "completed" && (
-            <div className="mt-4 flex items-center gap-2">
-              <BarChart className="h-4 w-4 text-primary" />
-              <p className="font-semibold">Score: {session.score}/100</p>
-            </div>
-          )}
+      <CardContent>
+        <p className="text-sm text-muted-foreground line-clamp-2">
+          {session.jobDescription}
+        </p>
+        <div className="mt-4 flex items-center gap-2 text-sm text-muted-foreground">
+          <Clock className="h-4 w-4" />
+          {formatDate(session.createdAt)}
         </div>
       </CardContent>
-
-      <CardFooter className="pt-2">
-        {session.status === "completed" ? (
-          <Button
-            variant="outline"
-            className="w-full"
-            onClick={() => onViewResults(session.id)}
-          >
-            <Eye className="h-4 w-4 mr-2" />
-            View Results
+      <CardFooter className="flex justify-end gap-2">
+        {session.status === "not-started" && (
+          <Button onClick={() => onContinue(session.id)}>
+            Start Interview
+            <ArrowRight className="ml-2 h-4 w-4" />
           </Button>
-        ) : (
-          <Button className="w-full" onClick={() => onContinue(session.id)}>
-            {session.status === "not-started" ? (
-              <>
-                <Plus className="h-4 w-4 mr-2" />
-                Start Interview
-              </>
-            ) : (
-              <>
-                <ArrowRight className="h-4 w-4 mr-2" />
-                Continue
-              </>
-            )}
+        )}
+        {session.status === "in-progress" && (
+          <Button onClick={() => onContinue(session.id)}>
+            Continue Interview
+            <ArrowRight className="ml-2 h-4 w-4" />
+          </Button>
+        )}
+        {session.status === "completed" && (
+          <Button onClick={() => onViewResults(session.id)}>
+            View Results
+            <BarChart className="ml-2 h-4 w-4" />
           </Button>
         )}
       </CardFooter>

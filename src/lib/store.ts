@@ -96,6 +96,7 @@ interface InterviewStore {
   getCurrentSession: () => InterviewSession | null;
   setCurrentSession: (sessionId: string) => Promise<void>;
   completeSession: (sessionId: string) => Promise<void>;
+  deleteSession: (sessionId: string) => Promise<void>;
 
   // Profile methods
   fetchUserProfile: () => Promise<void>;
@@ -489,6 +490,35 @@ export const useInterviewStore = create<InterviewStore>()(
                 : "Failed to complete session",
             isLoading: false,
           });
+        }
+      },
+
+      deleteSession: async (sessionId: string) => {
+        try {
+          if (!get().isReady()) {
+            throw new Error("Please configure your API settings first");
+          }
+
+          set({ isLoading: true, error: null });
+          const { userId } = get();
+          
+          const response = await fetch(`/api/sessions/${sessionId}?userId=${userId}`, {
+            method: "DELETE",
+          });
+
+          if (!response.ok) {
+            throw new Error("Failed to delete session");
+          }
+
+          await get().fetchSessions();
+          set({ isLoading: false });
+        } catch (error) {
+          console.error("Error deleting session:", error);
+          set({
+            error: error instanceof Error ? error.message : "Failed to delete session",
+            isLoading: false,
+          });
+          throw error;
         }
       },
 
