@@ -1,8 +1,6 @@
 "use client";
 
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
 import {
@@ -13,31 +11,14 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
+import { getClientConfig } from "@/lib/client-config";
 import { useInterviewStore } from "@/lib/store";
-import {
-  Clock,
-  Info,
-  Loader2,
-  MessageSquare,
-  Mic,
-  MicOff,
-  Square,
-  User,
-  Volume2,
-  Video,
-  VideoOff,
-  PhoneOff,
-  Settings,
-  Users,
-  MoreVertical,
-} from "lucide-react";
+import { ElevenLabsClient } from "elevenlabs";
+import { Info, Mic, MicOff, PhoneOff, Video, VideoOff } from "lucide-react";
+import { useTheme } from "next-themes";
 import { useRouter } from "next/navigation";
 import { use, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import { useTheme } from "next-themes";
-import { cn } from "@/lib/utils";
-import { ElevenLabsClient, play } from "elevenlabs";
-import { getClientConfig } from "@/lib/client-config";
 
 type InterviewerState = {
   name: string;
@@ -62,7 +43,11 @@ const getInitials = (name: string) => {
     .substring(0, 2);
 };
 
-export default function InterviewPage({ params }: { params: Promise<{ id: string }> }) {
+export default function InterviewPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
   const router = useRouter();
   const {
     setCurrentSession,
@@ -105,13 +90,15 @@ export default function InterviewPage({ params }: { params: Promise<{ id: string
   const audioChunksRef = useRef<Blob[]>([]);
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
-  const resolvedParams = use(params)
+  const resolvedParams = use(params);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const elevenlabsRef = useRef<ElevenLabsClient | null>(null);
 
   const [isCameraOn, setIsCameraOn] = useState(false);
   const [isMicOn, setIsMicOn] = useState(false);
+
+  const [audioError, setAudioError] = useState(false);
 
   const getNextQuestion = async (audioBlob: Blob) => {
     const session = getCurrentSession();
@@ -146,6 +133,9 @@ export default function InterviewPage({ params }: { params: Promise<{ id: string
 
       const data = await response.json();
 
+      // Save the transcript from Gemini's understanding
+      setTranscript(data.transcript || "");
+
       // Update interviewer state with the response
       setInterviewer((prev) => ({
         ...prev,
@@ -154,16 +144,18 @@ export default function InterviewPage({ params }: { params: Promise<{ id: string
         currentQuestion: data.nextQuestion,
       }));
 
-      // Save the transcript from Gemini's understanding
-      setTranscript(data.transcript || "");
-
-      // Speak the response and current question
+      // Speak the response first
       await speak(data.response);
-      await speak(data.nextQuestion);
+
+      // Only speak the next question if we're not at the end
+      const nextQuestionIndex = interviewState.questionIndex + 1;
+      if (nextQuestionIndex < interviewState.totalQuestions) {
+        // Add a small delay between response and question
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        await speak(data.nextQuestion);
+      }
 
       // Check if we should move to the next stage
-      const nextQuestionIndex = interviewState.questionIndex + 1;
-
       if (nextQuestionIndex >= interviewState.totalQuestions) {
         // Move to outro
         setInterviewState((prev) => ({ ...prev, stage: "outro" }));
@@ -256,9 +248,9 @@ export default function InterviewPage({ params }: { params: Promise<{ id: string
 
   const initCamera = async () => {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ 
+      const stream = await navigator.mediaDevices.getUserMedia({
         video: true,
-        audio: false // We don't need audio from camera since we handle it separately
+        audio: false, // We don't need audio from camera since we handle it separately
       });
       streamRef.current = stream;
 
@@ -268,7 +260,8 @@ export default function InterviewPage({ params }: { params: Promise<{ id: string
     } catch (error) {
       console.error("Error accessing camera:", error);
       toast.error("Camera Error", {
-        description: "Could not access your camera. Please check your permissions.",
+        description:
+          "Could not access your camera. Please check your permissions.",
       });
       setIsCameraOn(false); // Turn off camera if there's an error
     }
@@ -280,10 +273,11 @@ export default function InterviewPage({ params }: { params: Promise<{ id: string
       const voices = (window as any).speechSynthesis.getVoices();
       if (voices.length > 0) {
         const preferredVoice = voices.find(
-          (voice: SpeechVoice) => voice.lang.includes('en') && voice.name.includes('Female')
+          (voice: SpeechVoice) =>
+            voice.lang.includes("en") && voice.name.includes("Female")
         );
         if (preferredVoice) {
-          console.log('Using voice:', preferredVoice.name);
+          console.log("Using voice:", preferredVoice.name);
         }
       }
     };
@@ -305,66 +299,89 @@ export default function InterviewPage({ params }: { params: Promise<{ id: string
       const config = getClientConfig();
       if (config?.elevenLabsApiKey) {
         elevenlabsRef.current = new ElevenLabsClient({
-          apiKey: config.elevenLabsApiKey,
+          apiKey: process.env.ELEVENLABS_API_KEY,
         });
       }
     };
     initElevenLabs();
   }, []);
 
-  const speak = async (text: string): Promise<void> => {
-    return new Promise((resolve, reject) => {
-      try {
-        setIsSpeaking(true);
-
-        fetch("/api/elevenlabs", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ text }),
-        })
-          .then((response) => {
-            if (!response.ok) {
-              throw new Error("Failed to generate speech");
-            }
-            return response.blob();
-          })
-          .then((audioBlob) => {
-            const audioUrl = URL.createObjectURL(audioBlob);
-
-            if (audioRef.current) {
-              audioRef.current.src = audioUrl;
-              audioRef.current.onended = () => {
-                setIsSpeaking(false);
-                URL.revokeObjectURL(audioUrl);
-                resolve();
-              };
-              audioRef.current.onerror = () => {
-                setIsSpeaking(false);
-                URL.revokeObjectURL(audioUrl);
-                toast.error("Speech Error", {
-                  description: "Failed to play the interviewer's voice. Please try again.",
-                });
-                reject(new Error("Failed to play audio"));
-              };
-              audioRef.current.play().catch(reject);
-            }
-          })
-          .catch((error) => {
-            console.error("Error generating speech:", error);
-            setIsSpeaking(false);
-            toast.error("Speech Error", {
-              description: "Failed to generate the interviewer's voice. Please try again.",
-            });
-            reject(error);
-          });
-      } catch (error) {
-        console.error("Error in speak function:", error);
+  // Add this useEffect for audio element initialization
+  useEffect(() => {
+    // Create audio element if it doesn't exist
+    if (!audioRef.current) {
+      audioRef.current = new Audio();
+      audioRef.current.onerror = (e) => {
+        console.error("Audio playback error:", e);
+        setAudioError(true);
         setIsSpeaking(false);
-        reject(error);
+        toast.error("Audio Error", {
+          description: "Failed to play audio. Please check your audio settings.",
+        });
+      };
+    }
+
+    return () => {
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current.src = "";
       }
-    });
+    };
+  }, []);
+
+  const speak = async (text: string): Promise<void> => {
+    try {
+      if (!text) return;
+
+      setIsSpeaking(true);
+      setAudioError(false);
+      
+      const response = await fetch("/api/elevenlabs", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ text }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to generate speech");
+      }
+
+      const audioBlob = await response.blob();
+      const audioUrl = URL.createObjectURL(audioBlob);
+
+      if (audioRef.current) {
+        // Stop any currently playing audio
+        audioRef.current.pause();
+        audioRef.current.currentTime = 0;
+
+        // Set up new audio
+        audioRef.current.src = audioUrl;
+        audioRef.current.onended = () => {
+          setIsSpeaking(false);
+          URL.revokeObjectURL(audioUrl);
+        };
+
+        // Play the audio
+        try {
+          await audioRef.current.play();
+        } catch (playError) {
+          console.error("Error playing audio:", playError);
+          setAudioError(true);
+          setIsSpeaking(false);
+          toast.error("Playback Error", {
+            description: "Failed to play audio. Please check your audio settings.",
+          });
+        }
+      }
+    } catch (error) {
+      console.error("Error speaking:", error);
+      setIsSpeaking(false);
+      toast.error("Error", {
+        description: "Failed to generate speech. Please try again.",
+      });
+    }
   };
 
   // Start the interview when component mounts
@@ -390,29 +407,40 @@ export default function InterviewPage({ params }: { params: Promise<{ id: string
         clearInterval(recordingInterval);
       }
     };
-  }, [resolvedParams.id, setCurrentSession, getCurrentSession, router, updateSession]);
+  }, [
+    resolvedParams.id,
+    setCurrentSession,
+    getCurrentSession,
+    router,
+    updateSession,
+  ]);
 
   const startInterview = async () => {
-    const userProfile = getUserProfile();
-    const greeting = userProfile?.name
-      ? `Hello ${userProfile.name}! I'm your AI interviewer today.`
-      : "Hello! I'm your AI interviewer today.";
+    try {
+      const session = getCurrentSession();
+      if (!session) return;
 
-    // Start with introduction
-    setInterviewer((prev) => ({
-      ...prev,
-      speaking: true,
-      message: `${greeting} I'll be asking you some questions based on the job description you provided. Let's start with a brief introduction. Could you please introduce yourself?`,
-    }));
+      setInterviewState((prev) => ({ ...prev, stage: "questions" }));
 
-    // Add the first question
-    const session = getCurrentSession();
-    if (session) {
-      addQuestion(session.id, "Could you please introduce yourself?");
+      // Initial greeting with introduction request
+      const greeting = `Hello! I'm your AI interviewer today. I'll be asking you questions about ${session.jobTitle}. Before we begin, could you please introduce yourself?`;
+      
       setInterviewer((prev) => ({
         ...prev,
+        speaking: true,
+        message: greeting,
         currentQuestion: "Could you please introduce yourself?",
       }));
+
+      // Add the first question
+      addQuestion(session.id, "Could you please introduce yourself?");
+
+      await speak(greeting);
+    } catch (error) {
+      console.error("Error starting interview:", error);
+      toast.error("Error", {
+        description: "Failed to start the interview. Please try again.",
+      });
     }
   };
 
@@ -525,6 +553,9 @@ export default function InterviewPage({ params }: { params: Promise<{ id: string
 
   return (
     <div className="h-screen overflow-hidden bg-background">
+      {/* Add this hidden audio element */}
+      <audio ref={audioRef} className="hidden" />
+      
       <div className="flex flex-col h-full">
         {/* Main Content */}
         <div className="flex-1 flex">
@@ -550,7 +581,9 @@ export default function InterviewPage({ params }: { params: Promise<{ id: string
                 </div>
               )}
               <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/70 to-transparent">
-                <p className="text-white font-medium">{userProfile?.name || "You"}</p>
+                <p className="text-white font-medium">
+                  {userProfile?.name || "You"}
+                </p>
               </div>
             </div>
 
@@ -558,7 +591,9 @@ export default function InterviewPage({ params }: { params: Promise<{ id: string
             <div className="relative rounded-lg overflow-hidden bg-black">
               <div className="absolute inset-0 flex items-center justify-center bg-muted">
                 <div className="w-24 h-24 rounded-full bg-primary/10 flex items-center justify-center">
-                  <span className="text-4xl font-medium text-primary">{interviewer.initials}</span>
+                  <span className="text-4xl font-medium text-primary">
+                    {interviewer.initials}
+                  </span>
                 </div>
               </div>
               <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/70 to-transparent">
@@ -583,29 +618,43 @@ export default function InterviewPage({ params }: { params: Promise<{ id: string
                   {interviewer.message && (
                     <div className="flex items-start gap-2">
                       <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-                        <span className="text-primary font-medium">{interviewer.initials}</span>
+                        <span className="text-primary font-medium">
+                          {interviewer.initials}
+                        </span>
                       </div>
                       <div className="flex-1">
-                        <p className="text-sm font-medium">{interviewer.name}</p>
-                        <p className="text-sm text-muted-foreground">{interviewer.message}</p>
+                        <p className="text-sm font-medium">
+                          {interviewer.name}
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                          {interviewer.message}
+                        </p>
                       </div>
                     </div>
                   )}
                   {interviewer.currentQuestion && (
                     <div className="mt-4 p-4 bg-muted rounded-lg">
-                      <h4 className="font-medium text-foreground mb-2">Current Question:</h4>
-                      <p className="text-sm text-muted-foreground">{interviewer.currentQuestion}</p>
+                      <h4 className="font-medium text-foreground mb-2">
+                        Current Question:
+                      </h4>
+                      <p className="text-sm text-muted-foreground">
+                        {interviewer.currentQuestion}
+                      </p>
                     </div>
                   )}
                   {transcript && (
                     <div className="flex items-start gap-2">
                       <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center">
                         <span className="text-muted-foreground font-medium">
-                          {userProfile?.name ? getInitials(userProfile.name) : "U"}
+                          {userProfile?.name
+                            ? getInitials(userProfile.name)
+                            : "U"}
                         </span>
                       </div>
                       <div className="flex-1">
-                        <p className="text-sm text-muted-foreground">{transcript}</p>
+                        <p className="text-sm text-muted-foreground">
+                          {transcript}
+                        </p>
                       </div>
                     </div>
                   )}
@@ -632,14 +681,22 @@ export default function InterviewPage({ params }: { params: Promise<{ id: string
                 }}
                 disabled={isProcessing}
               >
-                {isMicOn ? <Mic className="h-5 w-5" /> : <MicOff className="h-5 w-5" />}
+                {isMicOn ? (
+                  <Mic className="h-5 w-5" />
+                ) : (
+                  <MicOff className="h-5 w-5" />
+                )}
               </Button>
-              <Button 
+              <Button
                 variant={isCameraOn ? "default" : "outline"}
                 size="icon"
                 onClick={() => setIsCameraOn(!isCameraOn)}
               >
-                {isCameraOn ? <Video className="h-5 w-5" /> : <VideoOff className="h-5 w-5" />}
+                {isCameraOn ? (
+                  <Video className="h-5 w-5" />
+                ) : (
+                  <VideoOff className="h-5 w-5" />
+                )}
               </Button>
             </div>
           </div>
@@ -647,14 +704,22 @@ export default function InterviewPage({ params }: { params: Promise<{ id: string
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-2">
               <span className="text-sm text-muted-foreground">
-                Question {interviewState.questionIndex + 1} of {interviewState.totalQuestions}
+                Question {interviewState.questionIndex + 1} of{" "}
+                {interviewState.totalQuestions}
               </span>
               <Progress
-                value={(interviewState.questionIndex / interviewState.totalQuestions) * 100}
+                value={
+                  (interviewState.questionIndex /
+                    interviewState.totalQuestions) *
+                  100
+                }
                 className="w-32 h-1"
               />
             </div>
-            <Button variant="destructive" onClick={() => router.push("/dashboard")}>
+            <Button
+              variant="destructive"
+              onClick={() => router.push("/dashboard")}
+            >
               <PhoneOff className="h-5 w-5 mr-2" />
               End Interview
             </Button>

@@ -1,27 +1,35 @@
 import { NextResponse } from "next/server";
-import { loadConfig } from "@/lib/secure-storage";
 import { ElevenLabsClient } from "elevenlabs";
+
+const ELEVENLABS_VOICE_ID = "21m00Tcm4TlvDq8ikWAM"; // Sarah voice ID
+const ELEVENLABS_MODEL_ID = "eleven_multilingual_v2";
 
 export async function POST(request: Request) {
   try {
     const { text } = await request.json();
-    const config = await loadConfig();
 
-    // if (!config?.elevenLabsApiKey) {
-    //   return NextResponse.json(
-    //     { error: "ElevenLabs API key not configured" },
-    //     { status: 400 }
-    //   );
-    // }
+    if (!process.env.ELEVENLABS_API_KEY) {
+      return NextResponse.json(
+        { error: "ElevenLabs API key not configured" },
+        { status: 400 }
+      );
+    }
+
+    if (!text) {
+      return NextResponse.json(
+        { error: "Text is required" },
+        { status: 400 }
+      );
+    }
 
     const elevenlabs = new ElevenLabsClient({
       apiKey: process.env.ELEVENLABS_API_KEY,
     });
 
     const audio = await elevenlabs.generate({
-      voice: "Sarah",
+      voice: ELEVENLABS_VOICE_ID,
       text,
-      model_id: "eleven_multilingual_v2",
+      model_id: ELEVENLABS_MODEL_ID,
       voice_settings: {
         stability: 0.5,
         similarity_boost: 0.75,
@@ -38,6 +46,7 @@ export async function POST(request: Request) {
     return new NextResponse(buffer, {
       headers: {
         "Content-Type": "audio/mpeg",
+        "Cache-Control": "no-cache",
       },
     });
   } catch (error) {
