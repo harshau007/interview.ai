@@ -46,8 +46,8 @@ export async function POST(request: NextRequest) {
       
       Return the data in this exact JSON structure:
       {
-        "response": "Your response as the interviewer",
-        "nextQuestion": "Your follow-up question based on the candidate's answer, job description, and their profile"
+        "response": "Your analysis or comment as the interviewer. This field should not include any follow-up question.",
+        "nextQuestion": "Your follow-up question based on the candidate's answer, job description, and their profile. Only include the question text here."
       }
       
       Guidelines:

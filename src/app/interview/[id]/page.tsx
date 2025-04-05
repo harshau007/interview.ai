@@ -91,6 +91,25 @@ export default function InterviewPage({
 
   const [audioError, setAudioError] = useState(false)
 
+  const [showMicHint, setShowMicHint] = useState(true)
+
+  // Hide the mic hint after 10 seconds
+  useEffect(() => {
+    if (showMicHint) {
+      const timer = setTimeout(() => {
+        setShowMicHint(false)
+      }, 10000)
+      return () => clearTimeout(timer)
+    }
+  }, [showMicHint])
+
+  // Hide the mic hint when recording starts
+  useEffect(() => {
+    if (isRecording) {
+      setShowMicHint(false)
+    }
+  }, [isRecording])
+
   const getNextQuestion = async (audioBlob: Blob) => {
     const session = getCurrentSession()
     if (!session) return
@@ -140,21 +159,8 @@ export default function InterviewPage({
       // Add a delay between response and question
       await new Promise((resolve) => setTimeout(resolve, 1500))
 
-      // Only speak the next question if we're not at the end
-      const nextQuestionIndex = interviewState.questionIndex + 1
-      if (nextQuestionIndex < interviewState.totalQuestions) {
-        // Update interviewer state to show the next question
-        setInterviewer((prev) => ({
-          ...prev,
-          speaking: true,
-          currentQuestion: data.nextQuestion,
-        }))
-
-        // Speak the next question
-        await speak(data.nextQuestion)
-      }
-
       // Check if we should move to the next stage
+      const nextQuestionIndex = interviewState.questionIndex + 1
       if (nextQuestionIndex >= interviewState.totalQuestions) {
         // Move to outro
         setInterviewState((prev) => ({ ...prev, stage: "outro" }))
@@ -179,6 +185,17 @@ export default function InterviewPage({
           ...prev,
           questionIndex: nextQuestionIndex,
         }))
+        
+        // Only speak the next question after the response is complete
+        // Update interviewer state to show the next question
+        setInterviewer((prev) => ({
+          ...prev,
+          speaking: true,
+          currentQuestion: data.nextQuestion,
+        }))
+        
+        // Speak the next question
+        await speak(data.nextQuestion)
       }
     } catch (error) {
       console.error("Error getting next question:", error)
@@ -353,14 +370,21 @@ export default function InterviewPage({
 
         // Set up new audio
         audioRef.current.src = audioUrl
-        audioRef.current.onended = () => {
-          setIsSpeaking(false)
-          URL.revokeObjectURL(audioUrl)
-        }
+        
+        // Create a promise that resolves when the audio finishes playing
+        const playPromise = new Promise<void>((resolve) => {
+          audioRef.current!.onended = () => {
+            setIsSpeaking(false)
+            URL.revokeObjectURL(audioUrl)
+            resolve()
+          }
+        })
 
         // Play the audio
         try {
           await audioRef.current.play()
+          // Wait for the audio to finish playing
+          await playPromise
         } catch (playError) {
           console.error("Error playing audio:", playError)
           setAudioError(true)
@@ -688,6 +712,18 @@ export default function InterviewPage({
           </div>
         </div>
       </div>
+
+      {/* Mic Hint */}
+      {showMicHint && !isRecording && !isProcessing && (
+        <div className="fixed bottom-24 left-1/2 transform -translate-x-1/2 bg-primary text-primary-foreground p-3 rounded-lg shadow-lg max-w-md animate-bounce">
+          <div className="flex items-center gap-2">
+            <Mic className="h-5 w-5" />
+            <p className="text-sm font-medium">
+              Click the microphone button to start speaking, then click it again to send your response.
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Job Details Sheet */}
       <Sheet>
